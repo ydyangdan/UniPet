@@ -1,0 +1,154 @@
+* {
+
+    margin: 0;
+
+    padding: 0;
+
+    box-sizing: border-box;
+
+}
+
+
+
+html, body {
+
+    width: 100%;
+
+    height: 100%;
+
+    background: transparent;
+
+    overflow: hidden;
+
+    user-select: none;
+
+    -webkit-user-select: none;
+
+    -webkit-app-region: drag;
+
+    cursor: grab;
+
+}
+
+
+
+body:active {
+
+    cursor: grabbing;
+
+}
+
+
+
+#pet-container {
+
+    position: relative;
+
+    width: 192px;
+
+    height: 208px;
+
+    margin: 20px auto 0;
+
+}
+
+
+
+#pet-sprite {
+
+    width: 192px;
+
+    height: 208px;
+
+    background-image: url("assets/default/spritesheet.webp");
+
+    background-repeat: no-repeat;
+
+    background-position: 0px 0px;
+
+    background-size: auto;
+
+    image-rendering: pixelated;
+
+    image-rendering: -moz-crisp-edges;
+
+    image-rendering: crisp-edges;
+
+}
+
+
+
+#pet-bubble {
+
+    position: absolute;
+
+    top: -48px;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    max-width: 220px;
+
+    padding: 6px 10px;
+
+    background: rgba(0, 0, 0, 0.75);
+
+    color: #fff;
+
+    font-family: 'Segoe UI', sans-serif;
+
+    font-size: 11px;
+
+    line-height: 1.4;
+
+    border-radius: 8px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    transition: opacity 0.3s;
+
+}
+
+
+
+#pet-bubble.hidden {
+
+    opacity: 0;
+
+    pointer-events: none;
+
+}
+
+
+
+#bubble-text {
+
+    display: block;
+
+}
+
+
+
+#pet-status {
+
+    position: absolute;
+
+    bottom: 4px;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    color: rgba(255, 255, 255, 0.3);
+
+    font-family: 'Segoe UI', sans-serif;
+
+    font-size: 9px;
+
+}
+
