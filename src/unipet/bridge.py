@@ -95,7 +95,17 @@ class PetStore:
 
     def __init__(self) -> None:
         self.pets: dict[str, PetEvent] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
+
+    def _purge_expired_locked(self) -> None:
+        now = time.time()
+        expired = [
+            source_id
+            for source_id, pet in self.pets.items()
+            if pet.ttl_ms is not None and (pet.updated_at + pet.ttl_ms / 1000) <= now
+        ]
+        for source_id in expired:
+            self.pets.pop(source_id, None)
 
     def apply(self, event: PetEvent) -> None:
         with self._lock:
@@ -111,6 +121,7 @@ class PetStore:
 
     def snapshot(self) -> list[dict]:
         with self._lock:
+            self._purge_expired_locked()
             return [
                 {
                     "source_id": p.source_id,
@@ -123,6 +134,7 @@ class PetStore:
                     "notification_count": p.notification_count,
                     "notification_kind": p.notification_kind,
                     "notification_label": p.notification_label,
+                    "ttl_ms": p.ttl_ms,
                     "updated_at": p.updated_at,
                 }
                 for p in self.pets.values()
@@ -130,6 +142,7 @@ class PetStore:
 
     def active_pet(self) -> Optional[dict]:
         with self._lock:
+            self._purge_expired_locked()
             if not self.pets:
                 return None
             active = max(
@@ -147,6 +160,7 @@ class PetStore:
                 "notification_count": active.notification_count,
                 "notification_kind": active.notification_kind,
                 "notification_label": active.notification_label,
+                "ttl_ms": active.ttl_ms,
                 "updated_at": active.updated_at,
             }
 

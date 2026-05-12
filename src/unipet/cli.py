@@ -226,7 +226,7 @@ def cmd_launch(args: Any) -> int:
         port = rt.get("port", port)
         ws_port = rt.get("ws_port", ws_port)
         _stop_bridge_processes(except_pid=rt.get("pid"))
-        _stop_overlay_processes(except_pid=rt.get("overlay_pid"))
+        _stop_overlay_processes()
         print(f"UniPet bridge already running: http://{host}:{port}")
     else:
         _stop_bridge_processes()
@@ -262,9 +262,12 @@ def cmd_launch(args: Any) -> int:
             print(f"Bridge failed to start. See log: {log_path}", file=sys.stderr)
             return 1
 
-    overlay_pid = _maybe_launch_overlay(host=host, port=port, ws_port=ws_port)
-    if overlay_pid:
-        _update_runtime(overlay_pid=overlay_pid)
+    if args.no_overlay:
+        print("  Overlay skipped")
+    else:
+        overlay_pid = _maybe_launch_overlay(host=host, port=port, ws_port=ws_port)
+        if overlay_pid:
+            _update_runtime(overlay_pid=overlay_pid)
     print(f"UniPet launched: http://{host}:{port}")
     return 0
 
@@ -304,10 +307,13 @@ def cmd_emit(args: Any) -> int:
     payload = {
         "protocol": PROTOCOL_VERSION,
         "source_id": args.source or "local-unipet",
+        "label": args.label or args.source or "UniPet",
         "state": args.state,
         "message": args.message,
         "action": "update",
     }
+    if args.ttl_ms:
+        payload["ttl_ms"] = args.ttl_ms
     try:
         result = _send_event(host, port, payload)
         print(f"Emitted: {args.state} - {args.message}")
@@ -444,6 +450,7 @@ def build_parser() -> argparse.ArgumentParser:
     launch_p.add_argument("--host", default=DEFAULT_BRIDGE_HOST)
     launch_p.add_argument("--port", type=int, default=DEFAULT_BRIDGE_PORT)
     launch_p.add_argument("--ws-port", type=int, default=DEFAULT_WS_PORT)
+    launch_p.add_argument("--no-overlay", action="store_true", help="Start only the local bridge")
 
     sub.add_parser("status", help="Show bridge/overlay status")
     sub.add_parser("stop", help="Stop bridge + overlay")
@@ -452,6 +459,8 @@ def build_parser() -> argparse.ArgumentParser:
     emit_p.add_argument("state", choices=["idle", "running", "waiting", "failed", "review"])
     emit_p.add_argument("message", help="Display message")
     emit_p.add_argument("--source", default=None, help="Source ID")
+    emit_p.add_argument("--label", default=None, help="Human-readable source label")
+    emit_p.add_argument("--ttl-ms", type=int, default=None, help="Auto-expire this event after N milliseconds")
     emit_p.add_argument("--host", default=DEFAULT_BRIDGE_HOST)
     emit_p.add_argument("--port", type=int, default=DEFAULT_BRIDGE_PORT)
 

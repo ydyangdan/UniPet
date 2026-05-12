@@ -40,21 +40,35 @@ WATCHER_LOCK = HERMES_PET_HOME / "runtime" / "adapter_watch.pid"
 
 
 # ── 工具函数 ──────────────────────────────────────────────────────────────
+def configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
 
 
 def send_event(
     state: str,
     message: str,
     source_id: str = "hermes",
+    label: str = "Hermes",
+    ttl_ms: Optional[int] = None,
 ) -> Optional[dict]:
     """发送状态事件到 UniPet bridge."""
-    payload = json.dumps({
+    payload_data = {
         "protocol": "unipet.v1",
         "source_id": source_id,
+        "label": label,
         "state": state,
         "message": message,
         "action": "update",
-    }).encode("utf-8")
+    }
+    if ttl_ms is not None:
+        payload_data["ttl_ms"] = ttl_ms
+    payload = json.dumps(payload_data).encode("utf-8")
 
     try:
         req = urllib.request.Request(
@@ -158,12 +172,18 @@ def detect_session_active(session_id: str) -> bool:
 
 def cmd_emit(args: argparse.Namespace) -> int:
     """发送一条状态事件."""
-    result = send_event(args.state, args.message, source_id=args.source or "hermes")
+    result = send_event(
+        args.state,
+        args.message,
+        source_id=args.source or "hermes",
+        label=args.label or "Hermes",
+        ttl_ms=args.ttl_ms,
+    )
     if result:
-        print(f"✓ Emitted: {args.state} — {args.message}")
-        print(f"  active state → {result.get('active_state', '?')}")
+        print(f"Emitted: {args.state} - {args.message}")
+        print(f"  active state -> {result.get('active_state', '?')}")
         return 0
-    print("✗ Failed to send event. Is the bridge running?", file=sys.stderr)
+    print("Failed to send event. Is the bridge running?", file=sys.stderr)
     return 1
 
 
@@ -213,7 +233,7 @@ def cmd_watch(args: argparse.Namespace) -> int:
 
             # 状态变化时才发送
             if current != last_state:
-                result = send_event(current, msg)
+                result = send_event(current, msg, ttl_ms=check_interval * 3000)
                 if result:
                     print(
                         f"[{datetime.now().strftime('%H:%M:%S')}] "
@@ -236,6 +256,7 @@ def cmd_watch(args: argparse.Namespace) -> int:
 
 
 def main() -> None:
+    configure_stdio()
     parser = argparse.ArgumentParser(
         prog="hermes-adapter",
         description="Hermes Agent → UniPet state adapter",
@@ -245,9 +266,11 @@ def main() -> None:
 
     # emit
     emit_p = sub.add_parser("emit", help="Send a state event to UniPet bridge")
-    emit_p.add_argument("state", help="idle|running|waiting|review|failed|jumping")
+    emit_p.add_argument("state", choices=["idle", "running", "waiting", "review", "failed"])
     emit_p.add_argument("message", help="Display message")
     emit_p.add_argument("--source", default="hermes", help="Source ID")
+    emit_p.add_argument("--label", default="Hermes", help="Display label")
+    emit_p.add_argument("--ttl-ms", type=int, default=None, help="Auto-expire after N milliseconds")
 
     # watch
     watch_p = sub.add_parser("watch", help="Watch Hermes Agent and auto-send state")
