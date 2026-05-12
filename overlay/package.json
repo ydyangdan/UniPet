@@ -3,9 +3,14 @@
   "version": "0.1.0",
   "description": "UniPet desktop overlay — transparent always-on-top sprite renderer",
   "main": "main.js",
+  "bin": {
+    "unipet": "./cli.js"
+  },
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --debug"
+    "dev": "electron . --debug",
+    "unipet": "node ./cli.js",
+    "check": "node --check main.js && node --check renderer.js && node --check cli.js && node --check core.js"
   },
   "dependencies": {
     "electron": "^33.0.0",

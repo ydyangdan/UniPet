@@ -4,17 +4,12 @@ This is the current working flow for the Windows-first UniPet MVP.
 
 ## Install
 
-From the project root:
-
-```powershell
-python -m pip install -e .
-```
-
-Install overlay dependencies if `overlay/node_modules` is missing:
+Node/Electron is the default runtime. Python is not required for normal use.
 
 ```powershell
 cd overlay
 npm install
+npm link
 cd ..
 ```
 
@@ -72,11 +67,9 @@ If `HERMES_HOME` is not set, it uses:
 
 ## Bridge Only
 
-For WSL or headless checks:
+The old Python bridge had a `--no-overlay` mode. The Node runtime intentionally runs bridge and overlay in one Electron process to reduce process count.
 
-```powershell
-unipet launch --no-overlay
-```
+For headless checks, keep using the HTTP protocol against a running desktop instance.
 
 ## Stop
 
