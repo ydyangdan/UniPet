@@ -6,6 +6,8 @@ const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 const { PROTOCOL_VERSION } = require('./core');
+const market = require('./market');
+const pets = require('./pets');
 
 console.log = (...args) => {
   fs.writeSync(1, `${args.join(' ')}\n`);
@@ -246,11 +248,22 @@ async function cmdStatus() {
   console.log(`  websocket: ${runtime.ws_url || `ws://${runtime.host}:${runtime.ws_port}/ws`}`);
   console.log(`  runtime: ${currentHealth && currentHealth.runtime ? currentHealth.runtime : runtime.runtime || 'unknown'}`);
   if (currentHealth) console.log(`  uptime: ${Math.floor(currentHealth.uptime || 0)}s`);
+  if (view.current_pet) {
+    console.log(`  current pet: ${view.current_pet.id} (${view.current_pet.displayName || view.current_pet.id})`);
+  }
   console.log(`  active state: ${view.active_state || 'idle'}`);
   for (const pet of view.pets || []) {
     console.log(`  [${pet.source_id}] ${pet.state}: ${String(pet.message || '').slice(0, 60)}`);
   }
   return 0;
+}
+
+async function notifyPetChangeIfRunning(id) {
+  const live = await liveRuntime();
+  if (!live) return false;
+  const { runtime } = live;
+  await requestJson('POST', runtime.port || DEFAULT_PORT, '/api/pet/use', { id }, runtime.host || DEFAULT_HOST);
+  return true;
 }
 
 async function ensureRunning() {
@@ -333,6 +346,8 @@ async function cmdDoctor() {
   console.log(`  node: ${process.version}`);
   console.log(`  cli: ${__filename}`);
   console.log(`  home: ${unipetHome()}`);
+  console.log(`  pets: ${pets.petsRoot()}`);
+  console.log(`  current pet: ${pets.currentPetId()}`);
   console.log(`  electron: ${electronBinary() ? 'ok' : 'missing'}`);
   console.log(`  runtime file: ${fs.existsSync(runtimePath()) ? runtimePath() : 'missing'}`);
   const live = await liveRuntime();
@@ -349,6 +364,135 @@ async function cmdDoctor() {
   return 0;
 }
 
+function formatLocalPet(pet, currentId) {
+  const marker = pet.id === currentId ? '*' : ' ';
+  const source = pet.builtin ? 'builtin' : pet.source;
+  return `${marker} ${pet.id.padEnd(18)} ${pet.displayName.padEnd(24)} ${source}`;
+}
+
+async function cmdPet(args) {
+  const { rest } = parseOptions(args);
+  const [subcommand, id] = rest;
+  if (!subcommand || subcommand === 'list') {
+    const currentId = pets.currentPetId();
+    console.log('Local pets:');
+    for (const pet of pets.listPets()) {
+      console.log(formatLocalPet(pet, currentId));
+    }
+    return 0;
+  }
+  if (subcommand === 'current') {
+    const pet = pets.currentPet();
+    console.log(`Current pet: ${pet.id} (${pet.displayName})`);
+    console.log(`  source: ${pet.builtin ? 'builtin' : pet.source}`);
+    console.log(`  path: ${pet.dir}`);
+    return 0;
+  }
+  if (subcommand === 'use') {
+    if (!id) {
+      console.error('Usage: unipet pet use <pet-id>');
+      return 1;
+    }
+    const pet = pets.setCurrentPet(id);
+    let hotReloaded = false;
+    try {
+      hotReloaded = await notifyPetChangeIfRunning(pet.id);
+    } catch (err) {
+      console.error(`Warning: saved pet selection, but running overlay was not updated: ${err.message}`);
+    }
+    console.log(`Using pet: ${pet.id} (${pet.displayName})`);
+    console.log(hotReloaded ? '  overlay updated' : '  start UniPet to see it');
+    return 0;
+  }
+  if (subcommand === 'remove') {
+    if (!id) {
+      console.error('Usage: unipet pet remove <pet-id>');
+      return 1;
+    }
+    const result = pets.removePet(id);
+    if (result.wasCurrent) {
+      try {
+        await notifyPetChangeIfRunning(result.current.id);
+      } catch (err) {
+        console.error(`Warning: removed current pet, but running overlay was not updated: ${err.message}`);
+      }
+    }
+    console.log(`Removed pet: ${result.removed.id} (${result.removed.displayName})`);
+    if (result.wasCurrent) console.log(`  current pet -> ${result.current.id}`);
+    return 0;
+  }
+  console.error(`Unknown pet command: ${subcommand}`);
+  console.error('Usage: unipet pet <list|current|use|remove>');
+  return 1;
+}
+
+async function cmdMarket(args) {
+  const { options, rest } = parseOptions(args);
+  const [subcommand, ...terms] = rest;
+  if (!subcommand || subcommand === 'list') {
+    const page = await market.listMarketPets({
+      page: options.page,
+      limit: options.limit || options.pageSize,
+      sort: options.sort || 'new',
+      content: options.content || 'safe',
+    });
+    console.log(market.formatMarketPage(page));
+    return 0;
+  }
+  if (subcommand === 'search') {
+    const query = terms.join(' ').trim();
+    if (!query) {
+      console.error('Usage: unipet market search <query>');
+      return 1;
+    }
+    const page = await market.listMarketPets({
+      query,
+      page: options.page,
+      limit: options.limit || options.pageSize,
+      sort: options.sort || 'new',
+      content: options.content || 'safe',
+    });
+    console.log(market.formatMarketPage(page));
+    return 0;
+  }
+  if (subcommand === 'info') {
+    const identifier = terms.join(' ').trim();
+    if (!identifier) {
+      console.error('Usage: unipet market info <pet-id-or-url>');
+      return 1;
+    }
+    const pet = await market.fetchMarketPet(identifier);
+    console.log(market.formatMarketPet(pet));
+    return 0;
+  }
+  if (subcommand === 'install') {
+    const identifier = terms.join(' ').trim();
+    if (!identifier) {
+      console.error('Usage: unipet market install <pet-id-or-url> [--use] [--as local-id]');
+      return 1;
+    }
+    const result = await market.installMarketPet(identifier, { localId: options.as || '' });
+    console.log(`Installed pet: ${result.installed.id} (${result.installed.displayName})`);
+    console.log(`  source: ${result.pet.id} from Codex Pet Share`);
+    console.log(`  path: ${result.installed.dir}`);
+    if (options.use) {
+      pets.setCurrentPet(result.installed.id);
+      let hotReloaded = false;
+      try {
+        hotReloaded = await notifyPetChangeIfRunning(result.installed.id);
+      } catch (err) {
+        console.error(`Warning: installed and selected pet, but running overlay was not updated: ${err.message}`);
+      }
+      console.log(`  current pet -> ${result.installed.id}`);
+      console.log(hotReloaded ? '  overlay updated' : '  start UniPet to see it');
+    }
+    return 0;
+  }
+  console.error(`Unknown market command: ${subcommand}`);
+  console.error('Usage: unipet market <list|search|info|install>');
+  return 1;
+}
+
 function help() {
   console.log(`UniPet Node runtime
 
@@ -359,6 +503,8 @@ Commands:
   unipet stop
   unipet clear
   unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--label text] [--ttl-ms n]
+  unipet market <list|search|info|install>
+  unipet pet <list|current|use|remove>
 `);
 }
 
@@ -387,6 +533,14 @@ async function main() {
     }
     if (command === 'clear') {
       process.exitCode = await cmdClear(args);
+      return;
+    }
+    if (command === 'market') {
+      process.exitCode = await cmdMarket(args);
+      return;
+    }
+    if (command === 'pet') {
+      process.exitCode = await cmdPet(args);
       return;
     }
     if (command === 'help' || command === '--help' || command === '-h') {

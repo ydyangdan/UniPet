@@ -12,6 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { PROTOCOL_VERSION, PetStore, normalizeEvent } = require('./core');
+const { rendererPetConfig, setCurrentPet } = require('./pets');
 
 // Safe console for background mode (EPIPE guard)
 const log = (...args) => { try { console.log(...args); } catch (_) {} };
@@ -105,6 +106,7 @@ function writeRuntime() {
         url: `http://${BRIDGE_HOST}:${BRIDGE_PORT}/api/pet/view`,
         ws_url: WS_URL,
         runtime: 'node-electron',
+        current_pet: rendererPetConfig().id,
         updated_at: Date.now() / 1000,
     }, null, 2));
 }
@@ -148,10 +150,20 @@ function readRequestJson(req, callback) {
 function bridgeView() {
     return {
         protocol: PROTOCOL_VERSION,
+        current_pet: rendererPetConfig(),
         pets: bridgeStore.snapshot(),
         active_pet: bridgeStore.activePet(),
         active_state: bridgeStore.activeState(),
     };
+}
+
+function sendPetConfig() {
+    if (!win) return;
+    try {
+        win.webContents.send('pet-config', rendererPetConfig());
+    } catch (err) {
+        warn('[unipet] could not send pet config:', err.message);
+    }
 }
 
 function broadcastState(force = false) {
@@ -183,6 +195,7 @@ function startBridge() {
                 protocol: PROTOCOL_VERSION,
                 ws_url: WS_URL,
                 runtime: 'node-electron',
+                current_pet: rendererPetConfig(),
             });
             return;
         }
@@ -204,6 +217,25 @@ function startBridge() {
                     broadcastState(true);
                 } catch (eventErr) {
                     sendJson(res, 400, { error: eventErr.message });
+                }
+            });
+            return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/pet/use') {
+            readRequestJson(req, (err, payload) => {
+                if (err) {
+                    sendJson(res, 400, { error: `invalid json: ${err.message}` });
+                    return;
+                }
+                try {
+                    setCurrentPet(payload.id || payload.pet_id || payload.petId);
+                    const view = bridgeView();
+                    sendJson(res, 200, { status: 'ok', ...view });
+                    sendPetConfig();
+                    broadcastState(true);
+                    writeRuntime();
+                } catch (useErr) {
+                    sendJson(res, 400, { error: useErr.message });
                 }
             });
             return;
@@ -323,6 +355,10 @@ function createWindow() {
 
     win.loadFile(path.join(__dirname, 'index.html'), {
         query: { scale: String(PET_RENDER_SCALE) },
+    });
+
+    win.webContents.once('did-finish-load', () => {
+        sendPetConfig();
     });
 
     win.once('ready-to-show', () => {

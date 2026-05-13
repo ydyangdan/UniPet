@@ -8,6 +8,7 @@ UniPet is a local-first desktop pet for AI coding agents. The current runtime is
 - Runtime stack is Node.js + Electron only.
 - Hermes integration is zero-intrusion: a Hermes plugin emits lifecycle events, and a Hermes skill remains available as a manual fallback contract.
 - The UI uses Codex Pet semantic states and a Codex-compatible spritesheet.
+- Pets can be listed, switched, removed, and installed from the Codex Pets market.
 - The default render scale is 0.5, so a 192 x 208 atlas cell appears as a 96 x 104 desktop pet, matching the smaller Codex Pet feel.
 
 ## Requirements
@@ -50,6 +51,24 @@ unipet status
 unipet doctor
 unipet clear
 unipet stop
+```
+
+Browse and install pets:
+
+```powershell
+unipet market list
+unipet market search cat
+unipet market info anby
+unipet market install anby --use
+```
+
+Manage local pets:
+
+```powershell
+unipet pet list
+unipet pet current
+unipet pet use pounce
+unipet pet remove anby
 ```
 
 ## Hermes Integration
@@ -95,6 +114,8 @@ overlay/main.js
   - HTTP bridge on 127.0.0.1:8768
   - WebSocket bridge on 127.0.0.1:8769
   - runtime file in ~/.unipet/runtime/pet_runtime.json
+  - current pet config in ~/.unipet/config.json
+  - installed pets in ~/.unipet/pets
         |
         v
 overlay/renderer.js
@@ -112,6 +133,8 @@ UniPet/
 |   |-- main.js                      Electron app + local bridge
 |   |-- core.js                      protocol normalization + state store
 |   |-- cli.js                       global unipet command
+|   |-- market.js                    Codex Pets market client
+|   |-- pets.js                      local pet library
 |   |-- renderer.js                  spritesheet animation renderer
 |   |-- tests/                       Node test suite
 |   `-- assets/default/              default Codex pet asset
@@ -145,13 +168,12 @@ Aliases such as `thinking`, `planning`, `success`, and `error` are normalized in
 GET  http://127.0.0.1:8768/health
 GET  http://127.0.0.1:8768/api/pet/view
 POST http://127.0.0.1:8768/api/pet/events
+POST http://127.0.0.1:8768/api/pet/use
 WS   ws://127.0.0.1:8769/ws
 ```
 
 ## Docs
 
 - [Quickstart](QUICKSTART.md)
-- [Usage](docs/USAGE.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [Render Architecture](docs/RENDER_ARCHITECTURE.md)
 - [Hermes Skill Contract](docs/HERMES_SKILL_CONTRACT.md)

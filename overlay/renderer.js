@@ -62,13 +62,22 @@ const anim = {
     currentFrame: 0,
     frameTimer: null,
     spritesheetUrl: 'assets/default/spritesheet.webp',
+    petId: 'pounce',
     bubbleTimer: null,
 
     /** Load a spritesheet (change pet skin). */
     loadSpritesheet(url) {
+        if (!url || this.spritesheetUrl === url) return;
         this.spritesheetUrl = url;
         spriteEl.style.backgroundImage = `url("${url}")`;
         this.renderFrame();
+    },
+
+    applyPetConfig(config) {
+        if (!config || !config.spritesheetUrl) return;
+        this.petId = config.id || this.petId;
+        this.loadSpritesheet(config.spritesheetUrl);
+        spriteEl.title = config.displayName || this.petId || 'UniPet';
     },
 
     /** Set spritesheet from a Codex pet directory. */
@@ -201,6 +210,7 @@ function init() {
     // Listen for pet events from main process
     if (window.unipetAPI) {
         window.unipetAPI.onPetEvent((event) => {
+            if (event.current_pet) anim.applyPetConfig(event.current_pet);
             const pet = event.active_pet || (event.pets || [])[0];
             if (pet) {
                 anim.transition(pet.state, pet.message);
@@ -212,6 +222,12 @@ function init() {
         window.unipetAPI.onBridgeConnected((connected) => {
             statusEl.textContent = connected ? 'connected' : 'disconnected';
         });
+
+        if (window.unipetAPI.onPetConfig) {
+            window.unipetAPI.onPetConfig((config) => {
+                anim.applyPetConfig(config);
+            });
+        }
     }
 
     // Initial render

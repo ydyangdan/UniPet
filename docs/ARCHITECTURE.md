@@ -11,6 +11,7 @@ overlay/cli.js
   - global `unipet` command
   - starts/stops Electron
   - sends events to the local bridge
+  - exposes `market` and `pet` grouped subcommands
 
 overlay/main.js
   - Electron main process
@@ -30,9 +31,20 @@ overlay/core.js
 overlay/renderer.js
   - Codex spritesheet animation
   - scaled atlas rendering
+  - runtime spritesheet switching
   - bubble text
   - hover/click jumping
   - drag-to-position
+
+overlay/pets.js
+  - local pet library under ~/.unipet/pets
+  - current selection in ~/.unipet/config.json
+  - built-in pounce fallback
+
+overlay/market.js
+  - Codex Pets market client
+  - list/search/info/install
+  - downloads spritesheet.webp without extra dependencies
 
 connectors/hermes/plugins/unipet
   - Hermes lifecycle hooks
@@ -106,6 +118,31 @@ Renderer:
 5. shows animation and bubble text
 ```
 
+## Pet Asset Flow
+
+```text
+unipet market install anby --use
+        |
+        v
+overlay/market.js
+  - GET https://codex-pets.net/api/pets/anby
+  - download spritesheet.webp
+        |
+        v
+overlay/pets.js
+  - write ~/.unipet/pets/anby/pet.json
+  - write ~/.unipet/pets/anby/spritesheet.webp
+  - update ~/.unipet/config.json when --use is set
+        |
+        v
+overlay/main.js
+  - POST /api/pet/use hot-reloads the running overlay
+        |
+        v
+overlay/renderer.js
+  - swaps background-image to the selected spritesheet
+```
+
 ## Render Sizing
 
 The bundled spritesheet uses 192 x 208 cells. UniPet treats this as a high-resolution atlas and renders at scale `0.5` by default, producing a 96 x 104 desktop pet.
@@ -117,5 +154,6 @@ The optional environment variable `UNIPET_RENDER_SCALE` can tune this for testin
 - Local-first: bind to `127.0.0.1`.
 - Low configuration: `unipet emit` and the Hermes plugin can auto-start the runtime when possible.
 - Minimal runtime stack: Node.js, Electron, and `ws`.
+- Market import uses Node built-ins only; no zip extraction or image conversion is needed for the first version.
 - Zero-intrusion Hermes integration: install plugin/skill under Hermes home, do not edit Hermes core.
 - Replaceable shell: the HTTP event contract is stable enough for a future lighter UI shell.

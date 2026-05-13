@@ -13,6 +13,10 @@ contextBridge.exposeInMainWorld('unipetAPI', {
     onPetEvent: (callback) =>
         ipcRenderer.on('pet-event', (_, event) => callback(event)),
 
+    // Current pet artwork/config
+    onPetConfig: (callback) =>
+        ipcRenderer.on('pet-config', (_, config) => callback(config)),
+
     // Drag IPC
     petDragStart: (point) => ipcRenderer.send('pet-drag-start', point),
     petDragMove: (point) => ipcRenderer.send('pet-drag-move', point),

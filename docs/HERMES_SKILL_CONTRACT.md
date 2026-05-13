@@ -1,6 +1,6 @@
 # Hermes Skill Contract
 
-Version: 0.3.0
+Version: 0.4.0
 
 This document defines the manual fallback contract for driving UniPet from Hermes without modifying Hermes core. The preferred path is now the Hermes plugin at `connectors/hermes/plugins/unipet`, which emits these same events automatically through lifecycle hooks.
 

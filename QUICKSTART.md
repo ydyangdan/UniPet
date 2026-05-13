@@ -69,7 +69,30 @@ unipet clear
 unipet stop
 ```
 
-## 5. Hermes Integration
+## 5. Change Pets
+
+Browse the online Codex Pets market:
+
+```powershell
+unipet market list
+unipet market list --sort popular --limit 12
+unipet market search cat
+unipet market info anby
+unipet market install anby --use
+```
+
+Manage local pets:
+
+```powershell
+unipet pet list
+unipet pet current
+unipet pet use pounce
+unipet pet remove anby
+```
+
+`market install` downloads the pet to `~/.unipet/pets`. Add `--use` to switch immediately. The built-in `pounce` pet cannot be removed.
+
+## 6. Hermes Integration
 
 Standalone install:
 
@@ -98,7 +121,7 @@ hermes plugins enable unipet
 
 Start a new Hermes session after enabling the plugin. The plugin sends lifecycle events to UniPet automatically. The skill contract remains available as a manual fallback.
 
-## 6. HTTP API
+## 7. HTTP API
 
 The CLI wraps a local HTTP endpoint. Scripts can call it directly:
 
@@ -113,10 +136,11 @@ Useful endpoints:
 ```text
 GET  http://127.0.0.1:8768/health
 GET  http://127.0.0.1:8768/api/pet/view
+POST http://127.0.0.1:8768/api/pet/use
 WS   ws://127.0.0.1:8769/ws
 ```
 
-## 7. Render Size
+## 8. Render Size
 
 The default desktop pet is rendered at 0.5 scale: a 192 x 208 atlas cell appears as 96 x 104 on screen.
 
@@ -129,7 +153,7 @@ unipet start
 
 Supported practical values are clamped between `0.35` and `1`.
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 Run:
 
