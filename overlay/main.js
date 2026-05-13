@@ -1,5 +1,5 @@
 /**
- * UniPet Overlay — Electron main process.
+ * UniPet Overlay - Electron main process.
  *
  * Creates a transparent always-on-top window, connects to the UniPet bridge
  * via WebSocket, and forwards pet events to the renderer.

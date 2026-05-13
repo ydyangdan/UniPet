@@ -7,6 +7,13 @@ const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 const { PROTOCOL_VERSION } = require('./core');
 
+console.log = (...args) => {
+  fs.writeSync(1, `${args.join(' ')}\n`);
+};
+console.error = (...args) => {
+  fs.writeSync(2, `${args.join(' ')}\n`);
+};
+
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 8768;
 const DEFAULT_WS_PORT = 8769;
@@ -55,29 +62,6 @@ function terminateProcess(pid) {
   }
 }
 
-function matchingProcessPids(tokens) {
-  if (process.platform !== 'win32') return [];
-  const result = spawnSync('wmic', ['process', 'get', 'ProcessId,CommandLine', '/format:list'], {
-    encoding: 'utf8',
-  });
-  if (result.error) return [];
-  const pids = [];
-  let command = '';
-  for (const rawLine of result.stdout.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (line.startsWith('CommandLine=')) {
-      command = line.slice('CommandLine='.length).replace(/\//g, '\\').toLowerCase();
-    } else if (line.startsWith('ProcessId=')) {
-      const pid = Number.parseInt(line.slice('ProcessId='.length), 10);
-      if (Number.isInteger(pid) && tokens.some((token) => command.includes(token.toLowerCase()))) {
-        pids.push(pid);
-      }
-      command = '';
-    }
-  }
-  return [...new Set(pids)];
-}
-
 function electronOverlayProcessPids() {
   if (process.platform !== 'win32') return [];
   const result = spawnSync('wmic', ['process', 'get', 'ProcessId,CommandLine', '/format:list'], {
@@ -99,12 +83,6 @@ function electronOverlayProcessPids() {
     }
   }
   return [...new Set(pids)];
-}
-
-function stopBridgeProcesses(exceptPid = null) {
-  for (const pid of matchingProcessPids(['unipet.bridge', 'unipet-bridge'])) {
-    if (pid !== exceptPid) terminateProcess(pid);
-  }
 }
 
 function stopOverlayProcesses(exceptPid = null) {
@@ -184,6 +162,19 @@ function electronBinary() {
   }
 }
 
+async function liveRuntime() {
+  const runtime = readRuntime();
+  if (!runtime || !processExists(runtime.pid)) {
+    try {
+      fs.rmSync(runtimePath(), { force: true });
+    } catch (_) {}
+    return null;
+  }
+  const currentHealth = await health(runtime.host || DEFAULT_HOST, runtime.port || DEFAULT_PORT);
+  if (!currentHealth) return null;
+  return { runtime, currentHealth };
+}
+
 async function cmdLaunch(args) {
   const { options } = parseOptions(args);
   const host = options.host || DEFAULT_HOST;
@@ -193,13 +184,10 @@ async function cmdLaunch(args) {
   const currentHealth = runtime ? await health(runtime.host || host, runtime.port || port) : null;
 
   if (runtime && currentHealth && currentHealth.pid === runtime.pid && currentHealth.runtime === 'node-electron') {
-    stopBridgeProcesses(runtime.pid);
-    stopOverlayProcesses(runtime.pid);
     console.log(`UniPet already running: http://${runtime.host || host}:${runtime.port || port}`);
     return 0;
   }
 
-  stopBridgeProcesses();
   stopOverlayProcesses();
 
   const electron = electronBinary();
@@ -209,21 +197,29 @@ async function cmdLaunch(args) {
   }
 
   fs.mkdirSync(path.join(unipetHome(), 'runtime'), { recursive: true });
-  const logPath = path.join(unipetHome(), 'runtime', 'overlay.log');
-  const logFd = fs.openSync(logPath, 'a');
-  const child = spawn(electron, [__dirname], {
-    detached: true,
-    stdio: ['ignore', logFd, logFd],
-    env: {
-      ...process.env,
-      UNIPET_HOST: host,
-      UNIPET_PORT: String(port),
-      UNIPET_WS_PORT: String(wsPort),
-      UNIPET_WS_URL: `ws://${host}:${wsPort}/ws`,
-    },
-  });
-  child.unref();
-  fs.closeSync(logFd);
+  const env = {
+    ...process.env,
+    UNIPET_HOST: host,
+    UNIPET_PORT: String(port),
+    UNIPET_WS_PORT: String(wsPort),
+    UNIPET_WS_URL: `ws://${host}:${wsPort}/ws`,
+  };
+  if (process.platform === 'win32') {
+    const quotePs = (value) => `'${String(value).replace(/'/g, "''")}'`;
+    const command = `Start-Process -WindowStyle Hidden -FilePath ${quotePs(electron)} -ArgumentList ${quotePs(__dirname)}`;
+    spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], {
+      stdio: 'ignore',
+      windowsHide: true,
+      env,
+    });
+  } else {
+    const child = spawn(electron, [__dirname], {
+      detached: true,
+      stdio: 'ignore',
+      env,
+    });
+    child.unref();
+  }
 
   for (let i = 0; i < 30; i += 1) {
     const started = await health(host, port);
@@ -234,18 +230,18 @@ async function cmdLaunch(args) {
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
-  console.error(`UniPet failed to start. See log: ${logPath}`);
+  console.error("UniPet failed to start. Run 'unipet doctor' for details.");
   return 1;
 }
 
 async function cmdStatus() {
-  const runtime = readRuntime();
-  if (!runtime || !processExists(runtime.pid)) {
+  const live = await liveRuntime();
+  if (!live) {
     console.log('UniPet: not running');
     return 0;
   }
+  const { runtime, currentHealth } = live;
   const view = await requestJson('GET', runtime.port || DEFAULT_PORT, '/api/pet/view', null, runtime.host || DEFAULT_HOST);
-  const currentHealth = await health(runtime.host || DEFAULT_HOST, runtime.port || DEFAULT_PORT);
   console.log(`UniPet running: pid=${runtime.pid}  http://${runtime.host}:${runtime.port}`);
   console.log(`  websocket: ${runtime.ws_url || `ws://${runtime.host}:${runtime.ws_port}/ws`}`);
   console.log(`  runtime: ${currentHealth && currentHealth.runtime ? currentHealth.runtime : runtime.runtime || 'unknown'}`);
@@ -257,6 +253,15 @@ async function cmdStatus() {
   return 0;
 }
 
+async function ensureRunning() {
+  const live = await liveRuntime();
+  if (live) return live.runtime;
+  const code = await cmdLaunch([]);
+  if (code !== 0) return null;
+  const started = await liveRuntime();
+  return started ? started.runtime : null;
+}
+
 async function cmdStop() {
   const runtime = readRuntime();
   if (runtime && runtime.pid) {
@@ -265,7 +270,6 @@ async function cmdStop() {
   } else {
     console.log('UniPet: not running');
   }
-  stopBridgeProcesses();
   stopOverlayProcesses();
   try {
     fs.rmSync(runtimePath(), { force: true });
@@ -281,9 +285,9 @@ async function cmdEmit(args) {
     console.error('Usage: unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--label text] [--ttl-ms n]');
     return 1;
   }
-  const runtime = readRuntime();
+  const runtime = await ensureRunning();
   if (!runtime) {
-    console.error('UniPet bridge not running. Start with: unipet launch');
+    console.error('UniPet bridge is not available.');
     return 1;
   }
   const payload = {
@@ -302,9 +306,14 @@ async function cmdEmit(args) {
 }
 
 async function cmdClear() {
-  const runtime = readRuntime();
+  const live = await liveRuntime();
+  if (!live) {
+    console.log('UniPet: not running');
+    return 0;
+  }
+  const { runtime } = live;
   if (!runtime) {
-    console.error('UniPet bridge not running. Start with: unipet launch');
+    console.error('UniPet bridge is not available.');
     return 1;
   }
   const result = await requestJson('POST', runtime.port || DEFAULT_PORT, '/api/pet/events', {
@@ -319,12 +328,34 @@ async function cmdClear() {
   return 0;
 }
 
+async function cmdDoctor() {
+  console.log('UniPet doctor');
+  console.log(`  node: ${process.version}`);
+  console.log(`  cli: ${__filename}`);
+  console.log(`  home: ${unipetHome()}`);
+  console.log(`  electron: ${electronBinary() ? 'ok' : 'missing'}`);
+  console.log(`  runtime file: ${fs.existsSync(runtimePath()) ? runtimePath() : 'missing'}`);
+  const live = await liveRuntime();
+  if (!live) {
+    console.log('  runtime: not running');
+    return 0;
+  }
+  const { runtime, currentHealth } = live;
+  console.log(`  runtime: ${currentHealth.runtime || runtime.runtime || 'unknown'}`);
+  console.log(`  pid: ${runtime.pid}`);
+  console.log(`  http: http://${runtime.host}:${runtime.port}`);
+  console.log(`  websocket: ${runtime.ws_url || `ws://${runtime.host}:${runtime.ws_port}/ws`}`);
+  console.log(`  uptime: ${Math.floor(currentHealth.uptime || 0)}s`);
+  return 0;
+}
+
 function help() {
   console.log(`UniPet Node runtime
 
 Commands:
   unipet launch [--host 127.0.0.1] [--port 8768] [--ws-port 8769]
   unipet status
+  unipet doctor
   unipet stop
   unipet clear
   unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--label text] [--ttl-ms n]
@@ -344,6 +375,10 @@ async function main() {
     }
     if (command === 'stop') {
       process.exitCode = await cmdStop();
+      return;
+    }
+    if (command === 'doctor') {
+      process.exitCode = await cmdDoctor();
       return;
     }
     if (command === 'emit') {

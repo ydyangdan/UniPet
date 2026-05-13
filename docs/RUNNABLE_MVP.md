@@ -4,13 +4,17 @@ This is the current working flow for the Windows-first UniPet MVP.
 
 ## Install
 
-Node/Electron is the default runtime. Python is not required for normal use.
+```powershell
+cd D:\codex_info\UniPet
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+Manual path:
 
 ```powershell
-cd overlay
+cd D:\codex_info\UniPet\overlay
 npm install
 npm link
-cd ..
 ```
 
 ## Run
@@ -18,9 +22,10 @@ cd ..
 ```powershell
 unipet launch
 unipet status
+unipet doctor
 ```
 
-The default endpoints are:
+Default endpoints:
 
 ```text
 HTTP:      http://127.0.0.1:8768
@@ -32,10 +37,10 @@ WebSocket: ws://127.0.0.1:8769/ws
 Use only Codex Pet semantic states:
 
 ```powershell
-unipet emit running "Hermes 正在执行任务" --source hermes --label Hermes --ttl-ms 120000
-unipet emit waiting "等待用户确认" --source hermes --label Hermes
-unipet emit failed "任务失败" --source hermes --label Hermes --ttl-ms 300000
-unipet emit review "完成，请复查" --source hermes --label Hermes --ttl-ms 300000
+unipet emit running "Hermes is working" --source hermes --label Hermes --ttl-ms 120000
+unipet emit waiting "Waiting for user confirmation" --source hermes --label Hermes
+unipet emit failed "Task failed" --source hermes --label Hermes --ttl-ms 300000
+unipet emit review "Done, please review" --source hermes --label Hermes --ttl-ms 300000
 unipet clear
 ```
 
@@ -64,12 +69,6 @@ If `HERMES_HOME` is not set, it uses:
 ```text
 ~/.hermes/skills/unipet
 ```
-
-## Bridge Only
-
-The old Python bridge had a `--no-overlay` mode. The Node runtime intentionally runs bridge and overlay in one Electron process to reduce process count.
-
-For headless checks, keep using the HTTP protocol against a running desktop instance.
 
 ## Stop
 

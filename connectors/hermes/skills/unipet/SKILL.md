@@ -1,10 +1,10 @@
 ---
 name: unipet
 description: "Drive UniPet, a local Codex-compatible desktop pet, from Hermes Agent task lifecycle events."
-version: 0.2.0
+version: 0.3.0
 author: UniPet
 license: MIT
-platforms: [windows, wsl]
+platforms: [windows, wsl, linux, macos]
 prerequisites:
   commands: [unipet]
 metadata:
@@ -16,60 +16,76 @@ metadata:
 # UniPet
 
 UniPet shows Hermes task state in a local floating desktop pet.
-It is zero-intrusion: do not edit Hermes core files. Use terminal commands only.
 
-## Required Convention
+It is zero-intrusion:
 
-Use exactly the Codex Pet semantic states:
-
-| Moment in Hermes work | Command |
-|---|---|
-| Before starting a user task or tool-heavy step | `unipet emit running "正在处理任务" --source hermes --label Hermes --ttl-ms 120000` |
-| When waiting for user input, approval, credentials, or clarification | `unipet emit waiting "等待用户确认" --source hermes --label Hermes` |
-| When work is complete and ready for user review | `unipet emit review "任务完成，请复查" --source hermes --label Hermes --ttl-ms 300000` |
-| When a command, build, test, network call, or integration step fails | `unipet emit failed "任务失败：简短原因" --source hermes --label Hermes --ttl-ms 300000` |
-| When explicitly asked to reset the pet | `unipet clear` |
-
-Do not send non-Codex states such as `thinking`, `success`, `listening`, or `speaking`.
-If the user mentions those concepts, map them to the five states above.
+- Do not edit Hermes core files.
+- Do not require a daemon inside Hermes.
+- Use the local `unipet` CLI only.
+- Keep messages short and do not include secrets.
 
 ## Startup
 
-At the beginning of a Hermes session, or before the first status event, ensure UniPet is running:
+Before the first status event, make sure UniPet is running:
 
 ```bash
 unipet launch
 ```
 
-`unipet launch` is idempotent. If UniPet is already running, it keeps the bridge and replaces stale overlay processes.
+`unipet launch` is idempotent. If UniPet is already healthy, it keeps the current runtime.
 
-## Normal Flow
+## Required States
 
-For a typical task:
+Use exactly the Codex Pet semantic states:
 
-```bash
-unipet launch
-unipet emit running "正在分析项目" --source hermes --label Hermes --ttl-ms 120000
-# do the work
-unipet emit review "完成，请复查" --source hermes --label Hermes --ttl-ms 300000
+```text
+idle
+running
+waiting
+failed
+review
 ```
 
-For a blocker:
+Do not send non-Codex states such as `thinking`, `planning`, `success`, `listening`, or `speaking`.
+If those concepts appear, map them to the five states above.
+
+## Commands
+
+When starting real work:
 
 ```bash
-unipet emit waiting "等待用户提供配置" --source hermes --label Hermes
+unipet emit running "Hermes is working" --source hermes --label Hermes --ttl-ms 120000
 ```
 
-For a failure:
+When waiting for user input, approval, credentials, or clarification:
 
 ```bash
-unipet emit failed "测试失败" --source hermes --label Hermes --ttl-ms 300000
+unipet emit waiting "Waiting for user confirmation" --source hermes --label Hermes
+```
+
+When work is complete and ready for user review:
+
+```bash
+unipet emit review "Done, please review" --source hermes --label Hermes --ttl-ms 300000
+```
+
+When a command, build, test, network call, or integration step fails:
+
+```bash
+unipet emit failed "Task failed: short reason" --source hermes --label Hermes --ttl-ms 300000
+```
+
+When explicitly asked to reset the pet:
+
+```bash
+unipet clear
 ```
 
 ## Diagnostics
 
 ```bash
 unipet status
+unipet doctor
 curl -fsS http://127.0.0.1:8768/health
 curl -fsS http://127.0.0.1:8768/api/pet/view
 ```

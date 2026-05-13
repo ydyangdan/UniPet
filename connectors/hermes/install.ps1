@@ -16,13 +16,19 @@ $SourceSkill = Join-Path $ScriptDir "skills\unipet"
 $TargetSkills = Join-Path $HermesHome "skills"
 $TargetSkill = Join-Path $TargetSkills "unipet"
 
-if (-not (Get-Command unipet -ErrorAction SilentlyContinue)) {
-    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-        throw "Node.js was not found. Install Node.js first, then rerun this installer."
-    }
-    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
-        throw "npm was not found. Install Node.js/npm first, then rerun this installer."
-    }
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    throw "Node.js was not found. Install Node.js first, then rerun this installer."
+}
+if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+    throw "npm was not found. Install Node.js/npm first, then rerun this installer."
+}
+
+$NpmPrefix = (& npm prefix -g).Trim()
+$NpmUnipet = Join-Path $NpmPrefix "unipet.cmd"
+$ResolvedUnipet = Get-Command unipet -ErrorAction SilentlyContinue
+$UnipetCommand = "unipet"
+
+if (-not $ResolvedUnipet) {
     if (-not (Test-Path (Join-Path $OverlayDir "node_modules"))) {
         Push-Location $OverlayDir
         npm install
@@ -31,6 +37,13 @@ if (-not (Get-Command unipet -ErrorAction SilentlyContinue)) {
     Push-Location $OverlayDir
     npm link
     Pop-Location
+    $ResolvedUnipet = Get-Command unipet -ErrorAction SilentlyContinue
+}
+
+if ($ResolvedUnipet -and $ResolvedUnipet.Source -and -not $ResolvedUnipet.Source.StartsWith($NpmPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    Write-Warning "Another unipet command is first on PATH: $($ResolvedUnipet.Source)"
+    Write-Warning "Using npm-linked UniPet for this installer: $NpmUnipet"
+    $UnipetCommand = $NpmUnipet
 }
 
 if (-not (Test-Path $SourceSkill)) {
@@ -49,7 +62,7 @@ Write-Host "Installed UniPet Hermes skill:"
 Write-Host "  $TargetSkill"
 
 if (-not $NoLaunch) {
-    unipet launch
+    & $UnipetCommand launch
 }
 
-unipet status
+& $UnipetCommand status

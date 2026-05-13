@@ -1,13 +1,13 @@
 # Node/Electron Runtime
 
-UniPet no longer needs Python to run the desktop pet.
+UniPet now runs on Node.js + Electron. Python has been removed from the active runtime and test path.
 
-The lightweight runtime path is:
+## Runtime Path
 
 ```text
-Hermes / CLI
+Hermes / CLI / local script
     |
-    | HTTP POST localhost
+    | unipet emit ... or HTTP POST
     v
 Electron main process
     - HTTP bridge :8768
@@ -16,27 +16,15 @@ Electron main process
     - transparent overlay window
 ```
 
-## Why
-
-The earlier MVP used Python for CLI + bridge and Electron for rendering. That meant users needed both Python 3.10+ and Node/Electron.
-
-The current runtime folds the bridge into Electron's main process and replaces the CLI with a small dependency-free Node script:
+## Files
 
 ```text
-overlay/main.js   Electron app + local bridge
-overlay/core.js   protocol normalization + state store
-overlay/cli.js    launch/status/stop/emit/clear
+overlay/main.js     Electron app, localhost bridge, process lifecycle
+overlay/core.js     protocol validation, state aliases, TTL store
+overlay/cli.js      launch/status/doctor/stop/emit/clear
+overlay/renderer.js spritesheet animation and bubble UI
+overlay/preload.js  safe IPC surface for renderer
 ```
-
-Runtime dependencies are now:
-
-```text
-Node.js for development
-Electron for desktop shell
-ws for WebSocket server/client
-```
-
-Python remains only as legacy/reference code and for old tests. It is no longer required for normal use.
 
 ## Install
 
@@ -53,7 +41,7 @@ After `npm link`, the `unipet` command points to the Node CLI.
 ```powershell
 unipet launch
 unipet status
-unipet emit running "Hermes 正在执行任务" --source hermes --label Hermes --ttl-ms 120000
+unipet emit running "Hermes is working" --source hermes --label Hermes --ttl-ms 120000
 unipet clear
 unipet stop
 ```
@@ -62,15 +50,9 @@ You can also run without a global link:
 
 ```powershell
 node D:\codex_info\UniPet\overlay\cli.js launch
-node D:\codex_info\UniPet\overlay\cli.js emit running "Hermes 正在执行任务" --source hermes --label Hermes
+node D:\codex_info\UniPet\overlay\cli.js emit running "Hermes is working" --source hermes --label Hermes
 ```
 
 ## Tradeoff
 
-Electron is still heavier than a native tray app. This change removes Python from the runtime and reduces the process count, but it does not make Electron itself lightweight.
-
-Future lightweight options:
-
-1. Keep Electron for MVP and package it cleanly.
-2. Later evaluate Tauri/Wry if memory footprint becomes the top priority.
-3. Keep the HTTP event protocol unchanged so the UI shell can be replaced without changing Hermes/OpenClaw connectors.
+Electron is heavier than a native tray app, but it gives the fastest reliable Windows MVP and keeps the future Linux/macOS path straightforward. The protocol is intentionally shell-independent, so a later Tauri/Wry/native shell can reuse the same `unipet.v1` event contract.

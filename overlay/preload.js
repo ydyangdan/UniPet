@@ -1,5 +1,5 @@
 /**
- * UniPet Overlay — preload script (context isolation bridge).
+ * UniPet Overlay - preload script (context isolation bridge).
  */
 
 const { contextBridge, ipcRenderer } = require('electron');

@@ -1,11 +1,11 @@
 /**
- * UniPet Overlay — renderer.CSS spritesheet animation engine.
+ * UniPet Overlay - CSS spritesheet animation engine.
  *
- * Renders a Codex-compatible 8×9 spritesheet using CSS background-position.
- * Receives state updates from the bridge via WebSocket → IPC.
+ * Renders a Codex-compatible spritesheet using CSS background-position.
+ * Receives state updates from the bridge via WebSocket and IPC.
  */
 
-// ---- Codex spritesheet animation config (matches unipet/protocol.py) ----
+// ---- Codex spritesheet animation config ----
 const ANIMATION_ROWS = {
     idle:          { row: 0, frames: 6, fps: 6,  loop: true },
     running:       { row: 7, frames: 6, fps: 10, loop: true },
