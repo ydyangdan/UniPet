@@ -2,6 +2,7 @@
   "name": "unipet-overlay",
   "version": "0.1.0",
   "description": "UniPet desktop overlay - transparent always-on-top sprite renderer",
+  "license": "MIT",
   "main": "main.js",
   "bin": {
     "unipet": "./cli.js"
