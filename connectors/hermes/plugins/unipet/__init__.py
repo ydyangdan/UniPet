@@ -1,0 +1,252 @@
+"""Hermes plugin bridge for UniPet.
+
+This plugin is intentionally tiny and best-effort. It runs inside Hermes,
+observes lifecycle hooks, and posts Codex Pet semantic states to the local
+UniPet bridge without modifying Hermes core.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import threading
+import time
+import urllib.error
+import urllib.request
+from typing import Any, Optional
+
+PROTOCOL = "unipet.v1"
+SOURCE_ID = os.getenv("UNIPET_HERMES_SOURCE_ID", "hermes")
+LABEL = os.getenv("UNIPET_HERMES_LABEL", "Hermes")
+HOST = os.getenv("UNIPET_HOST", "127.0.0.1")
+AUTO_START = os.getenv("UNIPET_HERMES_AUTO_START", "1").lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+PORT = _env_int("UNIPET_PORT", 8768)
+EVENT_URL = f"http://{HOST}:{PORT}/api/pet/events"
+HEALTH_URL = f"http://{HOST}:{PORT}/health"
+HTTP_TIMEOUT = max(0.05, _env_int("UNIPET_HERMES_TIMEOUT_MS", 350) / 1000)
+MIN_INTERVAL = max(0.0, _env_int("UNIPET_HERMES_MIN_INTERVAL_MS", 700) / 1000)
+
+_last_signature: Optional[tuple[str, str, str, str]] = None
+_last_sent_at = 0.0
+_start_attempted_at = 0.0
+_lock = threading.Lock()
+
+
+def _clip(value: Any, fallback: str, limit: int = 160) -> str:
+    text = str(value or fallback).strip()
+    return (text or fallback)[:limit]
+
+
+def _short_tool_name(tool_name: str) -> str:
+    return _clip(tool_name, "tool", 48)
+
+
+def _event(
+    state: str,
+    message: str,
+    *,
+    action: str = "update",
+    ttl_ms: Optional[int] = None,
+    source_id: str = SOURCE_ID,
+    label: str = LABEL,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "protocol": PROTOCOL,
+        "source_id": source_id,
+        "label": label,
+        "state": state,
+        "message": _clip(message, state),
+        "action": action,
+    }
+    if ttl_ms is not None:
+        payload["ttl_ms"] = ttl_ms
+    return payload
+
+
+def _is_error_result(result: Any) -> bool:
+    if result is None:
+        return False
+    if isinstance(result, dict):
+        return bool(result.get("error") or result.get("exception"))
+    if not isinstance(result, str):
+        return False
+
+    text = result.strip()
+    if not text:
+        return False
+    try:
+        parsed = json.loads(text)
+    except Exception:
+        lower = text.lower()
+        return lower.startswith("error:") or '"error"' in lower[:512]
+    return _is_error_result(parsed)
+
+
+def _post(payload: dict[str, Any]) -> None:
+    body = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        EVENT_URL,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Content-Length": str(len(body)),
+        },
+    )
+    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as res:
+        res.read(256)
+
+
+def _health() -> bool:
+    try:
+        with urllib.request.urlopen(HEALTH_URL, timeout=HTTP_TIMEOUT) as res:
+            return 200 <= res.status < 300
+    except Exception:
+        return False
+
+
+def _start_unipet_once() -> None:
+    global _start_attempted_at
+    if not AUTO_START:
+        return
+    now = time.monotonic()
+    with _lock:
+        if now - _start_attempted_at < 30:
+            return
+        _start_attempted_at = now
+
+    exe = shutil.which("unipet")
+    if not exe:
+        return
+
+    creationflags = 0
+    if os.name == "nt":
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    try:
+        subprocess.Popen(
+            [exe, "start"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=os.name != "nt",
+            creationflags=creationflags,
+        )
+    except Exception:
+        pass
+
+
+def _send(payload: dict[str, Any]) -> None:
+    def worker() -> None:
+        try:
+            _post(payload)
+            return
+        except (urllib.error.URLError, TimeoutError, OSError):
+            pass
+        except Exception:
+            return
+
+        _start_unipet_once()
+        for _ in range(10):
+            if _health():
+                break
+            time.sleep(0.2)
+        else:
+            return
+
+        try:
+            _post(payload)
+        except Exception:
+            pass
+
+    thread = threading.Thread(target=worker, name="unipet-hermes-hook", daemon=True)
+    thread.start()
+
+
+def _emit(payload: dict[str, Any]) -> None:
+    global _last_signature, _last_sent_at
+    signature = (
+        payload.get("source_id", ""),
+        payload.get("action", "update"),
+        payload.get("state", ""),
+        payload.get("message", ""),
+    )
+    now = time.monotonic()
+    with _lock:
+        if signature == _last_signature and now - _last_sent_at < MIN_INTERVAL:
+            return
+        _last_signature = signature
+        _last_sent_at = now
+    _send(payload)
+
+
+def _on_session_start(session_id: str = "", **_: Any) -> None:
+    _emit(_event("running", "Hermes session started", ttl_ms=120000))
+
+
+def _on_pre_llm_call(**_: Any) -> None:
+    _emit(_event("running", "Hermes is thinking", ttl_ms=120000))
+
+
+def _on_pre_tool_call(tool_name: str = "", **_: Any) -> None:
+    _emit(_event("running", f"Running {_short_tool_name(tool_name)}", ttl_ms=120000))
+
+
+def _on_post_tool_call(tool_name: str = "", result: Any = None, **_: Any) -> None:
+    if _is_error_result(result):
+        _emit(_event("failed", f"{_short_tool_name(tool_name)} failed", ttl_ms=300000))
+
+
+def _on_pre_approval_request(**_: Any) -> None:
+    _emit(_event("waiting", "Waiting for approval", ttl_ms=600000))
+
+
+def _on_post_approval_response(choice: str = "", **_: Any) -> None:
+    normalized = str(choice or "").strip().lower()
+    if normalized in {"deny", "timeout"}:
+        _emit(_event("failed", f"Approval {normalized or 'failed'}", ttl_ms=300000))
+    else:
+        _emit(_event("running", "Approval received", ttl_ms=120000))
+
+
+def _on_post_llm_call(**_: Any) -> None:
+    _emit(_event("review", "Done, please review", ttl_ms=300000))
+
+
+def _on_session_end(completed: bool = True, interrupted: bool = False, **_: Any) -> None:
+    if interrupted:
+        _emit(_event("waiting", "Hermes was interrupted", ttl_ms=300000))
+    elif not completed:
+        _emit(_event("failed", "Hermes task did not complete", ttl_ms=300000))
+
+
+def _remove_source(**_: Any) -> None:
+    _emit(_event("idle", "Hermes session closed", action="remove"))
+
+
+def register(ctx) -> None:
+    ctx.register_hook("on_session_start", _on_session_start)
+    ctx.register_hook("pre_llm_call", _on_pre_llm_call)
+    ctx.register_hook("pre_tool_call", _on_pre_tool_call)
+    ctx.register_hook("post_tool_call", _on_post_tool_call)
+    ctx.register_hook("pre_approval_request", _on_pre_approval_request)
+    ctx.register_hook("post_approval_response", _on_post_approval_response)
+    ctx.register_hook("post_llm_call", _on_post_llm_call)
+    ctx.register_hook("on_session_end", _on_session_end)
+    ctx.register_hook("on_session_finalize", _remove_source)
+    ctx.register_hook("on_session_reset", _remove_source)

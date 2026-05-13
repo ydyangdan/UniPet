@@ -1,5 +1,5 @@
 param(
-    [switch]$NoLaunch,
+    [switch]$NoStart,
     [switch]$NoHermesSkill
 )
 
@@ -33,11 +33,11 @@ if ($ResolvedUnipet -and $ResolvedUnipet.Source -and -not $ResolvedUnipet.Source
 }
 
 if (-not $NoHermesSkill) {
-    & (Join-Path $Root "connectors\hermes\install.ps1") -NoLaunch
+    & (Join-Path $Root "connectors\hermes\install.ps1") -NoStart
 }
 
-if (-not $NoLaunch) {
-    & $UnipetCommand launch
+if (-not $NoStart) {
+    & $UnipetCommand start
 }
 
 & $UnipetCommand doctor

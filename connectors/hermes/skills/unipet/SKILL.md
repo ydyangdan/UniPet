@@ -1,7 +1,7 @@
 ---
 name: unipet
 description: "Drive UniPet, a local Codex-compatible desktop pet, from Hermes Agent task lifecycle events."
-version: 0.3.0
+version: 0.4.0
 author: UniPet
 license: MIT
 platforms: [windows, wsl, linux, macos]
@@ -17,6 +17,8 @@ metadata:
 
 UniPet shows Hermes task state in a local floating desktop pet.
 
+This skill is the manual fallback contract. When the Hermes plugin `unipet` is installed and enabled, lifecycle hooks send these status events automatically.
+
 It is zero-intrusion:
 
 - Do not edit Hermes core files.
@@ -29,10 +31,10 @@ It is zero-intrusion:
 Before the first status event, make sure UniPet is running:
 
 ```bash
-unipet launch
+unipet start
 ```
 
-`unipet launch` is idempotent. If UniPet is already healthy, it keeps the current runtime.
+`unipet start` is idempotent. If UniPet is already healthy, it keeps the current runtime.
 
 ## Required States
 

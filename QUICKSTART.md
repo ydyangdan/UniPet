@@ -1,6 +1,6 @@
 # UniPet Quickstart
 
-This guide uses the current Node.js + Electron runtime. No Python setup is required.
+This guide covers the current Node.js + Electron runtime. UniPet itself does not require Python.
 
 ## 1. Requirements
 
@@ -24,13 +24,13 @@ cd D:\codex_info\UniPet
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-This installs `overlay/` dependencies, links the global `unipet` command, installs the Hermes skill, and launches UniPet.
+This installs `overlay/` dependencies, links the global `unipet` command, installs the Hermes plugin and skill, enables the Hermes plugin when possible, and starts UniPet.
 
-If you only want to install the CLI/runtime:
+Install only the CLI/runtime:
 
 ```powershell
 cd D:\codex_info\UniPet
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -NoLaunch -NoHermesSkill
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -NoStart -NoHermesSkill
 ```
 
 Unix/WSL:
@@ -40,13 +40,13 @@ cd /path/to/UniPet
 ./install.sh
 ```
 
-## 3. Launch
+## 3. Start
 
 ```powershell
-unipet launch
+unipet start
 ```
 
-`launch` is idempotent. Running it again keeps the current healthy runtime and cleans up stale old processes.
+`start` is idempotent. Running it again keeps a healthy runtime and cleans stale old processes.
 
 ## 4. Send States
 
@@ -71,7 +71,7 @@ unipet stop
 
 ## 5. Hermes Integration
 
-Install the skill:
+Standalone install:
 
 ```powershell
 .\connectors\hermes\install.ps1
@@ -83,14 +83,20 @@ or:
 ./connectors/hermes/install.sh
 ```
 
-Hermes should call the CLI directly through the skill contract:
+The installer copies the Hermes plugin and skill:
+
+```text
+$HERMES_HOME/plugins/unipet
+$HERMES_HOME/skills/unipet
+```
+
+If Hermes is on PATH, the installer also enables the plugin:
 
 ```powershell
-unipet emit running "Hermes is working" --source hermes --label Hermes --ttl-ms 120000
-unipet emit waiting "Waiting for input" --source hermes --label Hermes
-unipet emit review "Done, please review" --source hermes --label Hermes --ttl-ms 300000
-unipet emit failed "Task failed: short reason" --source hermes --label Hermes --ttl-ms 300000
+hermes plugins enable unipet
 ```
+
+Start a new Hermes session after enabling the plugin. The plugin sends lifecycle events to UniPet automatically. The skill contract remains available as a manual fallback.
 
 ## 6. HTTP API
 
@@ -110,7 +116,20 @@ GET  http://127.0.0.1:8768/api/pet/view
 WS   ws://127.0.0.1:8769/ws
 ```
 
-## 7. Troubleshooting
+## 7. Render Size
+
+The default desktop pet is rendered at 0.5 scale: a 192 x 208 atlas cell appears as 96 x 104 on screen.
+
+For testing, you can override it before starting UniPet:
+
+```powershell
+$env:UNIPET_RENDER_SCALE="0.5"
+unipet start
+```
+
+Supported practical values are clamped between `0.35` and `1`.
+
+## 8. Troubleshooting
 
 Run:
 
@@ -132,11 +151,9 @@ If `unipet doctor` shows an old command or does not support `doctor`, check PATH
 where.exe unipet
 ```
 
-If a previous Python install appears before the npm command, remove the old package or move npm earlier in PATH.
-
-If the pet window is stale:
+The npm-linked command should be earlier than any old install. If the pet window is stale:
 
 ```powershell
 unipet stop
-unipet launch
+unipet start
 ```

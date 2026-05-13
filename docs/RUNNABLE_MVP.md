@@ -9,7 +9,7 @@ cd D:\codex_info\UniPet
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-Manual path:
+Manual runtime path:
 
 ```powershell
 cd D:\codex_info\UniPet\overlay
@@ -20,7 +20,7 @@ npm link
 ## Run
 
 ```powershell
-unipet launch
+unipet start
 unipet status
 unipet doctor
 ```
@@ -44,7 +44,7 @@ unipet emit review "Done, please review" --source hermes --label Hermes --ttl-ms
 unipet clear
 ```
 
-## Install Hermes Skill
+## Hermes Integration
 
 PowerShell:
 
@@ -58,17 +58,26 @@ Bash or WSL:
 ./connectors/hermes/install.sh
 ```
 
-The installer copies the skill to:
+The installer copies:
 
 ```text
+$HERMES_HOME/plugins/unipet
 $HERMES_HOME/skills/unipet
 ```
 
-If `HERMES_HOME` is not set, it uses:
+If `HERMES_HOME` is not set, the installer tries to infer the active Hermes home from the `hermes` command wrapper, then falls back to `~/.hermes`.
 
-```text
-~/.hermes/skills/unipet
+When `hermes` is available, it runs:
+
+```powershell
+hermes plugins enable unipet
 ```
+
+Start a new Hermes session after enabling the plugin.
+
+## Render Size
+
+The default pet size is 96 x 104 CSS pixels, rendered from the 192 x 208 atlas cells at scale `0.5`.
 
 ## Stop
 

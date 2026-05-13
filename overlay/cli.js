@@ -175,7 +175,7 @@ async function liveRuntime() {
   return { runtime, currentHealth };
 }
 
-async function cmdLaunch(args) {
+async function cmdStart(args) {
   const { options } = parseOptions(args);
   const host = options.host || DEFAULT_HOST;
   const port = Number.parseInt(options.port || DEFAULT_PORT, 10);
@@ -224,7 +224,7 @@ async function cmdLaunch(args) {
   for (let i = 0; i < 30; i += 1) {
     const started = await health(host, port);
     if (started && started.runtime === 'node-electron') {
-      console.log(`UniPet launched: http://${host}:${port}`);
+      console.log(`UniPet started: http://${host}:${port}`);
       return 0;
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -256,7 +256,7 @@ async function cmdStatus() {
 async function ensureRunning() {
   const live = await liveRuntime();
   if (live) return live.runtime;
-  const code = await cmdLaunch([]);
+  const code = await cmdStart([]);
   if (code !== 0) return null;
   const started = await liveRuntime();
   return started ? started.runtime : null;
@@ -353,7 +353,7 @@ function help() {
   console.log(`UniPet Node runtime
 
 Commands:
-  unipet launch [--host 127.0.0.1] [--port 8768] [--ws-port 8769]
+  unipet start [--host 127.0.0.1] [--port 8768] [--ws-port 8769]
   unipet status
   unipet doctor
   unipet stop
@@ -369,8 +369,8 @@ async function main() {
       process.exitCode = await cmdStatus();
       return;
     }
-    if (command === 'launch') {
-      process.exitCode = await cmdLaunch(args);
+    if (command === 'start') {
+      process.exitCode = await cmdStart(args);
       return;
     }
     if (command === 'stop') {

@@ -3,16 +3,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OVERLAY="$ROOT/overlay"
-NO_LAUNCH=0
+NO_START=0
 NO_HERMES_SKILL=0
 
 for arg in "$@"; do
   case "$arg" in
-    --no-launch) NO_LAUNCH=1 ;;
+    --no-start) NO_START=1 ;;
     --no-hermes-skill) NO_HERMES_SKILL=1 ;;
     *)
       echo "Unknown option: $arg" >&2
-      echo "Usage: ./install.sh [--no-launch] [--no-hermes-skill]" >&2
+      echo "Usage: ./install.sh [--no-start] [--no-hermes-skill]" >&2
       exit 1
       ;;
   esac
@@ -31,11 +31,11 @@ fi
 (cd "$OVERLAY" && npm install && npm link)
 
 if [ "$NO_HERMES_SKILL" -eq 0 ]; then
-  "$ROOT/connectors/hermes/install.sh" --no-launch
+  "$ROOT/connectors/hermes/install.sh" --no-start
 fi
 
-if [ "$NO_LAUNCH" -eq 0 ]; then
-  unipet launch
+if [ "$NO_START" -eq 0 ]; then
+  unipet start
 fi
 
 unipet doctor

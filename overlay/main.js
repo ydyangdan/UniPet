@@ -22,7 +22,15 @@ const BRIDGE_HOST = process.env.UNIPET_HOST || '127.0.0.1';
 const BRIDGE_PORT = process.env.UNIPET_PORT || 8768;
 const BRIDGE_WS_PORT = process.env.UNIPET_WS_PORT || 8769;
 const WS_URL = process.env.UNIPET_WS_URL || `ws://${BRIDGE_HOST}:${BRIDGE_WS_PORT}/ws`;
-const WINDOW_SIZE = { width: 300, height: 340 };
+const PET_RENDER_SCALE = readRenderScale(process.env.UNIPET_RENDER_SCALE);
+const PET_DISPLAY_SIZE = {
+    width: Math.round(192 * PET_RENDER_SCALE),
+    height: Math.round(208 * PET_RENDER_SCALE),
+};
+const WINDOW_SIZE = {
+    width: Math.max(180, PET_DISPLAY_SIZE.width + 84),
+    height: Math.max(190, PET_DISPLAY_SIZE.height + 86),
+};
 const PET_TITLE = `UniPet Overlay [${process.pid}]`;
 
 let win = null;
@@ -37,6 +45,12 @@ let httpServer = null;
 let wsServer = null;
 let bridgeStore = null;
 let lastBroadcast = '';
+
+function readRenderScale(value) {
+    const parsed = Number.parseFloat(value || '0.5');
+    if (!Number.isFinite(parsed)) return 0.5;
+    return Math.min(1, Math.max(0.35, parsed));
+}
 
 // ---- Position persistence ----
 function positionFilePath() {
@@ -307,7 +321,9 @@ function createWindow() {
         },
     });
 
-    win.loadFile(path.join(__dirname, 'index.html'));
+    win.loadFile(path.join(__dirname, 'index.html'), {
+        query: { scale: String(PET_RENDER_SCALE) },
+    });
 
     win.once('ready-to-show', () => {
         win.showInactive();

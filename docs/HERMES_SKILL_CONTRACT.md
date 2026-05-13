@@ -1,8 +1,8 @@
 # Hermes Skill Contract
 
-Version: 0.2.0
+Version: 0.3.0
 
-This document defines how Hermes should drive UniPet without modifying Hermes core.
+This document defines the manual fallback contract for driving UniPet from Hermes without modifying Hermes core. The preferred path is now the Hermes plugin at `connectors/hermes/plugins/unipet`, which emits these same events automatically through lifecycle hooks.
 
 ## State Model
 
@@ -20,41 +20,58 @@ Do not introduce Hermes-specific states in the first version. Map them instead:
 
 | Hermes term | UniPet state |
 |---|---|
-| planning, thinking | `review` or `running`; use `running` while actively working |
+| planning, thinking | `running` |
 | success, done, completed | `review` |
 | approval, confirm, blocked by user | `waiting` |
 | error, exception, command failed | `failed` |
+
+## Plugin Hook Mapping
+
+The Hermes plugin uses this approximate mapping:
+
+| Hermes hook | UniPet event |
+|---|---|
+| `on_session_start` | `running` |
+| `pre_llm_call` | `running` |
+| `pre_tool_call` | `running` |
+| `post_tool_call` with error-like result | `failed` |
+| `pre_approval_request` | `waiting` |
+| `post_approval_response` | `running` or `failed` |
+| `post_llm_call` | `review` |
+| `on_session_end` interrupted | `waiting` |
+| `on_session_end` incomplete | `failed` |
+| `on_session_finalize` / `on_session_reset` | remove Hermes source |
 
 ## Required Commands
 
 Start or verify the pet:
 
 ```powershell
-unipet launch
+unipet start
 ```
 
 Send a running event:
 
 ```powershell
-unipet emit running "正在处理任务" --source hermes --label Hermes --ttl-ms 120000
+unipet emit running "Processing task" --source hermes --label Hermes --ttl-ms 120000
 ```
 
 Send a waiting event:
 
 ```powershell
-unipet emit waiting "等待用户确认" --source hermes --label Hermes
+unipet emit waiting "Waiting for user confirmation" --source hermes --label Hermes
 ```
 
 Send a finished/review event:
 
 ```powershell
-unipet emit review "任务完成，请复查" --source hermes --label Hermes --ttl-ms 300000
+unipet emit review "Task complete, please review" --source hermes --label Hermes --ttl-ms 300000
 ```
 
 Send a failed event:
 
 ```powershell
-unipet emit failed "任务失败：简短原因" --source hermes --label Hermes --ttl-ms 300000
+unipet emit failed "Task failed: short reason" --source hermes --label Hermes --ttl-ms 300000
 ```
 
 Reset state:
@@ -65,7 +82,7 @@ unipet clear
 
 ## Event Rules
 
-1. Call `unipet launch` once before the first event in a session.
+1. Call `unipet start` once before the first event in a session if the plugin is not installed.
 2. Emit `running` before long command batches, code edits, builds, tests, or repository scans.
 3. Emit `waiting` only when the next step truly needs user input.
 4. Emit `review` only when the task is genuinely ready for user review.
@@ -75,7 +92,7 @@ unipet clear
 
 ## HTTP Equivalent
 
-Hermes may use the CLI or HTTP. The CLI is preferred.
+Hermes may use the CLI or HTTP. The plugin uses HTTP directly; the skill fallback should use the CLI because it auto-starts the runtime.
 
 ```json
 {
@@ -83,7 +100,7 @@ Hermes may use the CLI or HTTP. The CLI is preferred.
   "source_id": "hermes",
   "label": "Hermes",
   "state": "running",
-  "message": "正在处理任务",
+  "message": "Processing task",
   "action": "update",
   "ttl_ms": 120000
 }

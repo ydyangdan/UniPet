@@ -13,20 +13,25 @@ const ANIMATION_ROWS = {
     running_left:  { row: 2, frames: 8, fps: 10, loop: true },
     waving:        { row: 3, frames: 4, fps: 8,  loop: false, fallback: 'idle' },
     jumping:       { row: 4, frames: 5, fps: 8,  loop: false, fallback: 'idle' },
-    failed:        { row: 5, frames: 8, fps: 6,  loop: false, fallback: 'idle' },
+    failed:        { row: 5, frames: 8, fps: 6,  loop: true },
     waiting:       { row: 6, frames: 6, fps: 6,  loop: true },
     review:        { row: 8, frames: 6, fps: 6,  loop: true },
 };
 
 const CELL_W = 192;
 const CELL_H = 208;
+const SHEET_COLUMNS = 8;
+const SHEET_ROWS = 9;
+const RENDER_SCALE = readRenderScale();
+const DISPLAY_W = Math.round(CELL_W * RENDER_SCALE);
+const DISPLAY_H = Math.round(CELL_H * RENDER_SCALE);
 
 // Keep the public state model identical to Codex Pet:
 // idle, running, waiting, failed, review.
 const STATE_ALIASES = {
     error:  'failed',
-    thinking: 'review',
-    planning: 'review',
+    thinking: 'running',
+    planning: 'running',
     busy:    'waiting',
     offline: 'idle',
 };
@@ -36,6 +41,20 @@ const spriteEl = document.getElementById('pet-sprite');
 const bubbleEl = document.getElementById('pet-bubble');
 const bubbleTextEl = document.getElementById('bubble-text');
 const statusEl = document.getElementById('pet-status');
+
+function readRenderScale() {
+    const params = new URLSearchParams(window.location.search);
+    const parsed = Number.parseFloat(params.get('scale') || '0.5');
+    if (!Number.isFinite(parsed)) return 0.5;
+    return Math.min(1, Math.max(0.35, parsed));
+}
+
+function configureSpriteSize() {
+    const root = document.documentElement;
+    root.style.setProperty('--pet-width', `${DISPLAY_W}px`);
+    root.style.setProperty('--pet-height', `${DISPLAY_H}px`);
+    spriteEl.style.backgroundSize = `${DISPLAY_W * SHEET_COLUMNS}px ${DISPLAY_H * SHEET_ROWS}px`;
+}
 
 // ---- Animation controller ----
 const anim = {
@@ -104,8 +123,8 @@ const anim = {
     renderFrame() {
 
         const cfg = this.getConfig(this.currentState);
-        const x = this.currentFrame * CELL_W;
-        const y = cfg.row * CELL_H;
+        const x = this.currentFrame * DISPLAY_W;
+        const y = cfg.row * DISPLAY_H;
         spriteEl.style.backgroundPosition = `-${x}px -${y}px`;
     },
 
@@ -121,9 +140,9 @@ const anim = {
         }, interval);
     },
 
-    /** Play a one-shot animation then fall back to idle. */
-    startOneShot(cfg) {
-        const fallback = cfg.fallback || 'idle';
+    /** Play a one-shot animation, then return to a real bridge state. */
+    startOneShot(cfg, fallbackState) {
+        const fallback = fallbackState || cfg.fallback || 'idle';
         const totalFrames = cfg.frames;
         let played = 1;
         const interval = 1000 / cfg.fps;
@@ -138,6 +157,22 @@ const anim = {
             this.renderFrame();
             played++;
         }, interval);
+    },
+
+    playPreview(stateName) {
+        const returnState = this.currentState && this.currentState !== stateName
+            ? this.currentState
+            : 'idle';
+        const normalized = STATE_ALIASES[stateName] || stateName;
+        const cfg = this.getConfig(normalized);
+        if (cfg.loop || this.currentState === normalized) return;
+
+        this.stopLoop();
+        this.currentState = normalized;
+        this.currentFrame = 0;
+        this.renderFrame();
+        this.startOneShot(cfg, returnState);
+        statusEl.textContent = normalized;
     },
 
     stopLoop() {
@@ -161,6 +196,7 @@ const anim = {
 
 // ---- Initialise ----
 function init() {
+    configureSpriteSize();
 
     // Listen for pet events from main process
     if (window.unipetAPI) {
@@ -168,6 +204,8 @@ function init() {
             const pet = event.active_pet || (event.pets || [])[0];
             if (pet) {
                 anim.transition(pet.state, pet.message);
+            } else {
+                anim.transition('idle');
             }
         });
 
@@ -179,10 +217,12 @@ function init() {
     // Initial render
     anim.transition('idle', 'UniPet ready');
 
-    // Click to toggle drag mode
+    // Pointer interactions are temporary animations; bridge state remains authoritative.
     spriteEl.addEventListener('click', () => {
-        anim.transition('jumping', '');
-        setTimeout(() => anim.transition('idle'), 2000);
+        anim.playPreview('jumping');
+    });
+    spriteEl.addEventListener('mouseenter', () => {
+        if (!dragActive) anim.playPreview('jumping');
     });
 }
 

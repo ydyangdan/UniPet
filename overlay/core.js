@@ -5,8 +5,8 @@ const PET_ACTIONS = new Set(['update', 'remove', 'clear', 'ack']);
 
 const STATE_ALIASES = {
   error: 'failed',
-  thinking: 'review',
-  planning: 'review',
+  thinking: 'running',
+  planning: 'running',
   busy: 'waiting',
   offline: 'idle',
   pending: 'waiting',

@@ -4,8 +4,8 @@ const { PetStore, normalizeEvent, normalizeState } = require('../core');
 
 test('normalizes Codex states and common aliases', () => {
   assert.equal(normalizeState('running'), 'running');
-  assert.equal(normalizeState('thinking'), 'review');
-  assert.equal(normalizeState('planning'), 'review');
+  assert.equal(normalizeState('thinking'), 'running');
+  assert.equal(normalizeState('planning'), 'running');
   assert.equal(normalizeState('success'), 'review');
   assert.equal(normalizeState('error'), 'failed');
   assert.equal(normalizeState('unknown-state'), 'idle');
