@@ -1,6 +1,6 @@
 # UniPet
 
-UniPet is a lightweight desktop pet for AI coding agents. It runs as a small
+UniPet is a Universal desktop pet for AI coding agents. It runs as a small
 Node.js + Electron overlay and listens on localhost, so tools such as Hermes,
 OpenClaw, shell scripts, or your own agent can drive the pet without modifying
 their core code.
