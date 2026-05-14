@@ -1,21 +1,21 @@
 # UniPet
 
-UniPet is a universal desktop pet for AI coding agents. It runs as a smallUniPet is a Universal desktop pet for AI coding agents. It runs as a small
-Node.js + Electron overlay and listens on localhost, so tools such as Hermes,Node.js + Electron overlay and listens on localhost, so tools such as Hermes,
-OpenClaw, shell scripts, or your own agent can drive the pet without modifyingOpenClaw, shell scripts, or your own agent can drive the pet without modifying
-their core code.their core code.
+UniPet is a Universal Desktop Pet for AI coding agents. It runs as a small
+Node.js + Electron overlay and listens on localhost, so tools such as Hermes,
+OpenClaw, shell scripts, or your own agent can drive the pet without modifying
+their core code.
 
 ![UniPet Hermes demo](docs/assets/unipet-hermes-demo.png)
 
 ## What It Does
 
-- Shows a transparent, always-on-top desktop pet. Shows a transparent, always-on-top desktop pet. Shows a transparent, always-on-top desktop pet. Shows a transparent, always-on-top desktop pet.
-- Uses Codex Pet semantic states:  Uses Codex Pet semantic states:  Uses Codex Pet semantic states:  Uses Codex Pet semantic states: `idle`, , , , `running`, , , , `waiting`, , , , `failed`, and, and, and, and
-  `review`................
-- Displays short bubble messages from agent events. Displays short bubble messages from agent events. Displays short bubble messages from agent events. Displays short bubble messages from agent events.
-- Supports hover/click jumping and draggable positioning. Supports hover/click jumping and draggable positioning. Supports hover/click jumping and draggable positioning. Supports hover/click jumping and draggable positioning.
-- Installs, lists, switches, and removes local pets. Installs, lists, switches, and removes local pets. Installs, lists, switches, and removes local pets. Installs, lists, switches, and removes local pets.
-- Downloads Codex-compatible pets from the pet market. Downloads Codex-compatible pets from the pet market. Downloads Codex-compatible pets from the pet market. Downloads Codex-compatible pets from the pet market.
+- Shows a transparent, always-on-top desktop pet.
+- Uses Codex Pet semantic states: `idle`, `running`, `waiting`, `failed`, and
+  `review`.
+- Displays short bubble messages from agent events.
+- Supports hover/click jumping and draggable positioning.
+- Installs, lists, switches, and removes local pets.
+- Downloads Codex-compatible pets from the pet market.
 - Integrates with Hermes and OpenClaw through optional zero-intrusion plugins.
 
 UniPet itself does not require Python. The Hermes connector contains a tiny
