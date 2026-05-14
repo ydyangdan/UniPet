@@ -54,6 +54,12 @@ connectors/hermes/plugins/unipet
 connectors/hermes/skills/unipet/SKILL.md
   - manual Hermes calling convention
   - fallback contract for CLI-driven status updates
+
+connectors/openclaw/plugin
+  - OpenClaw native hook plugin
+  - message and agent lifecycle mapping
+  - best-effort local HTTP event emission
+  - no OpenClaw source changes
 ```
 
 ## State Model
@@ -79,6 +85,19 @@ Hermes lifecycle hook
         |
         v
 connectors/hermes/plugins/unipet
+        |
+        | POST http://127.0.0.1:8768/api/pet/events
+        v
+overlay/main.js bridge
+```
+
+Automatic OpenClaw path:
+
+```text
+OpenClaw native hook
+        |
+        v
+connectors/openclaw/plugin
         |
         | POST http://127.0.0.1:8768/api/pet/events
         v
@@ -156,4 +175,5 @@ The optional environment variable `UNIPET_RENDER_SCALE` can tune this for testin
 - Minimal runtime stack: Node.js, Electron, and `ws`.
 - Market import uses Node built-ins only; no zip extraction or image conversion is needed for the first version.
 - Zero-intrusion Hermes integration: install plugin/skill under Hermes home, do not edit Hermes core.
+- Zero-intrusion OpenClaw integration: install a native plugin through OpenClaw's plugin CLI, do not edit OpenClaw source.
 - Replaceable shell: the HTTP event contract is stable enough for a future lighter UI shell.

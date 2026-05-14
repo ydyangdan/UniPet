@@ -1,6 +1,7 @@
 param(
     [switch]$NoStart,
-    [switch]$NoHermesSkill
+    [switch]$NoHermesSkill,
+    [switch]$OpenClawPlugin
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,6 +35,10 @@ if ($ResolvedUnipet -and $ResolvedUnipet.Source -and -not $ResolvedUnipet.Source
 
 if (-not $NoHermesSkill) {
     & (Join-Path $Root "connectors\hermes\install.ps1") -NoStart
+}
+
+if ($OpenClawPlugin) {
+    & (Join-Path $Root "connectors\openclaw\install.ps1") -NoStart
 }
 
 if (-not $NoStart) {

@@ -1,0 +1,69 @@
+{
+  "id": "unipet-openclaw",
+  "version": "0.1.0",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "UniPet OpenClaw Connector",
+  "description": "Mirrors OpenClaw conversation and agent lifecycle events to the local UniPet desktop pet.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "host": {
+        "type": "string",
+        "default": "127.0.0.1"
+      },
+      "port": {
+        "type": "number",
+        "default": 8768
+      },
+      "timeoutMs": {
+        "type": "number",
+        "default": 350
+      },
+      "bubbleMode": {
+        "type": "string",
+        "enum": [
+          "first20",
+          "off"
+        ],
+        "default": "first20"
+      },
+      "bubbleChars": {
+        "type": "number",
+        "default": 20
+      },
+      "perAgent": {
+        "type": "boolean",
+        "default": false
+      }
+    }
+  },
+  "uiHints": {
+    "enabled": {
+      "label": "Enabled",
+      "help": "Forward OpenClaw lifecycle events to UniPet."
+    },
+    "host": {
+      "label": "UniPet Host",
+      "help": "Local UniPet bridge host. Keep this on 127.0.0.1 for local-first use."
+    },
+    "port": {
+      "label": "UniPet Port",
+      "help": "Local UniPet HTTP bridge port."
+    },
+    "bubbleMode": {
+      "label": "Bubble Mode",
+      "help": "Show the first characters of outgoing OpenClaw replies, or turn reply bubbles off."
+    },
+    "perAgent": {
+      "label": "Per Agent Source",
+      "help": "Use one UniPet source per OpenClaw agent when agent IDs are available."
+    }
+  }
+}

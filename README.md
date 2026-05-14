@@ -15,7 +15,7 @@ UniPet is a universal desktop pet for AI coding agents. The current runtime is N
 
 - Node.js 18+
 - npm
-- Hermes Agent is optional, only needed for automatic Hermes lifecycle integration.
+- Hermes Agent and OpenClaw are optional, only needed for their automatic lifecycle integrations.
 
 UniPet itself does not require Python. The Hermes plugin is a tiny Python file because Hermes loads plugins in its own Python environment; it uses only Python standard library modules.
 
@@ -115,7 +115,67 @@ When the `hermes` command is available, it also runs:
 hermes plugins enable unipet
 ```
 
-Start a new Hermes session after enabling the plugin. Hooks are loaded per session.
+Start a new Hermes session after enabling the plugin. Hooks are loaded per session.
+
+
+
+## OpenClaw Integration
+
+
+
+OpenClaw support uses a native hook plugin. It does not modify OpenClaw source code and has no npm runtime dependencies.
+
+
+
+Install the UniPet runtime and OpenClaw plugin together:
+
+
+
+```powershell
+
+.\install.ps1 -OpenClawPlugin
+
+```
+
+
+
+or:
+
+
+
+```bash
+
+./install.sh --openclaw-plugin
+
+```
+
+
+
+Standalone OpenClaw plugin install:
+
+
+
+```powershell
+
+.\connectors\openclaw\install.ps1
+
+```
+
+
+
+or:
+
+
+
+```bash
+
+./connectors/openclaw/install.sh
+
+```
+
+
+
+Restart OpenClaw Gateway after enabling the plugin. The connector listens to OpenClaw hooks and posts local UniPet events to `127.0.0.1:8768`.
 
 ## Architecture
 
@@ -157,7 +217,13 @@ UniPet/
 |   |-- plugins/unipet/              Hermes lifecycle plugin
 |   |-- skills/unipet/SKILL.md       Hermes manual skill contract
 |   `-- install.ps1 / install.sh     Hermes installer
-|-- docs/                            design and usage notes
+|-- connectors/openclaw/             OpenClaw zero-intrusion integration
+
+|   |-- plugin/                      OpenClaw hook plugin
+
+|   `-- install.ps1 / install.sh     OpenClaw installer
+
+|-- docs/                            design and usage notes
 |-- install.ps1                      Windows one-time setup
 `-- install.sh                       Unix/WSL one-time setup
 ```
@@ -188,4 +254,6 @@ WS   ws://127.0.0.1:8769/ws
 
 ## Docs
 - [Architecture](docs/ARCHITECTURE.md)
-- [Hermes Skill Contract](docs/HERMES_SKILL_CONTRACT.md)
+- [Hermes Skill Contract](docs/HERMES_SKILL_CONTRACT.md)
+
+- [OpenClaw Connector](docs/OPENCLAW_CONNECTOR.md)

@@ -5,14 +5,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OVERLAY="$ROOT/overlay"
 NO_START=0
 NO_HERMES_SKILL=0
+OPENCLAW_PLUGIN=0
 
 for arg in "$@"; do
   case "$arg" in
     --no-start) NO_START=1 ;;
     --no-hermes-skill) NO_HERMES_SKILL=1 ;;
+    --openclaw-plugin) OPENCLAW_PLUGIN=1 ;;
     *)
       echo "Unknown option: $arg" >&2
-      echo "Usage: ./install.sh [--no-start] [--no-hermes-skill]" >&2
+      echo "Usage: ./install.sh [--no-start] [--no-hermes-skill] [--openclaw-plugin]" >&2
       exit 1
       ;;
   esac
@@ -32,6 +34,10 @@ fi
 
 if [ "$NO_HERMES_SKILL" -eq 0 ]; then
   "$ROOT/connectors/hermes/install.sh" --no-start
+fi
+
+if [ "$OPENCLAW_PLUGIN" -eq 1 ]; then
+  "$ROOT/connectors/openclaw/install.sh" --no-start
 fi
 
 if [ "$NO_START" -eq 0 ]; then
