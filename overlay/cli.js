@@ -164,6 +164,73 @@ function electronBinary() {
   }
 }
 
+function projectRoot() {
+  return path.resolve(__dirname, '..');
+}
+
+function runInherited(command, args) {
+  const result = spawnSync(command, args, {
+    cwd: projectRoot(),
+    env: process.env,
+    stdio: 'inherit',
+    windowsHide: false,
+  });
+  if (result.error) {
+    console.error(`Failed to run ${command}: ${result.error.message}`);
+    return 1;
+  }
+  return typeof result.status === 'number' ? result.status : 1;
+}
+
+function setupScriptPath(connector, extension) {
+  return path.join(projectRoot(), 'connectors', connector, `install.${extension}`);
+}
+
+function ensureSetupScript(connector, extension) {
+  const scriptPath = setupScriptPath(connector, extension);
+  if (!fs.existsSync(scriptPath)) {
+    throw new Error(`Setup script not found: ${scriptPath}`);
+  }
+  return scriptPath;
+}
+
+function runHermesSetup(options) {
+  console.log('Setting up UniPet Hermes connector...');
+  if (process.platform === 'win32') {
+    const scriptPath = ensureSetupScript('hermes', 'ps1');
+    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath];
+    if (!options.start) args.push('-NoStart');
+    if (options.hermesHome) args.push('-HermesHome', options.hermesHome);
+    return runInherited('powershell.exe', args);
+  }
+  const scriptPath = ensureSetupScript('hermes', 'sh');
+  const args = [scriptPath];
+  if (!options.start) args.push('--no-start');
+  return runInherited('bash', args);
+}
+
+function runOpenClawSetup(options) {
+  console.log('Setting up UniPet OpenClaw connector...');
+  if (process.platform === 'win32') {
+    const scriptPath = ensureSetupScript('openclaw', 'ps1');
+    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath];
+    if (!options.start) args.push('-NoStart');
+    if (options.noEnable) args.push('-NoEnable');
+    if (options.skipValidate) args.push('-SkipValidate');
+    if (options.copy) args.push('-Copy');
+    if (options.openclawCommand) args.push('-OpenClawCommand', options.openclawCommand);
+    if (options.unipetCommand) args.push('-UnipetCommand', options.unipetCommand);
+    return runInherited('powershell.exe', args);
+  }
+  const scriptPath = ensureSetupScript('openclaw', 'sh');
+  const args = [scriptPath];
+  if (!options.start) args.push('--no-start');
+  if (options.noEnable) args.push('--no-enable');
+  if (options.skipValidate) args.push('--skip-validate');
+  if (options.copy) args.push('--copy');
+  return runInherited('bash', args);
+}
+
 async function liveRuntime() {
   const runtime = readRuntime();
   if (!runtime || !processExists(runtime.pid)) {
@@ -493,6 +560,33 @@ async function cmdMarket(args) {
   return 1;
 }
 
+async function cmdSetup(args) {
+  const { options, rest } = parseOptions(args);
+  const [target] = rest;
+  if (!target || target === 'help' || target === '--help' || target === '-h') {
+    console.log(`Usage:
+  unipet setup hermes [--start] [--hermes-home path]
+  unipet setup openclaw [--start] [--copy] [--no-enable] [--skip-validate]
+  unipet setup all [--start]
+`);
+    return target ? 0 : 1;
+  }
+  if (target === 'hermes') {
+    return runHermesSetup(options);
+  }
+  if (target === 'openclaw') {
+    return runOpenClawSetup(options);
+  }
+  if (target === 'all') {
+    const hermesCode = runHermesSetup(options);
+    if (hermesCode !== 0) return hermesCode;
+    return runOpenClawSetup(options);
+  }
+  console.error(`Unknown setup target: ${target}`);
+  console.error('Usage: unipet setup <hermes|openclaw|all>');
+  return 1;
+}
+
 function help() {
   console.log(`UniPet Node runtime
 
@@ -505,6 +599,7 @@ Commands:
   unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--label text] [--ttl-ms n]
   unipet market <list|search|info|install>
   unipet pet <list|current|use|remove>
+  unipet setup <hermes|openclaw|all>
 `);
 }
 
@@ -541,6 +636,10 @@ async function main() {
     }
     if (command === 'pet') {
       process.exitCode = await cmdPet(args);
+      return;
+    }
+    if (command === 'setup') {
+      process.exitCode = await cmdSetup(args);
       return;
     }
     if (command === 'help' || command === '--help' || command === '-h') {

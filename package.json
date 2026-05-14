@@ -1,0 +1,64 @@
+{
+  "name": "uni-pet",
+  "version": "0.1.0",
+  "description": "Universal desktop pet for AI coding agents",
+  "license": "MIT",
+  "author": "ydyangdan",
+  "homepage": "https://github.com/ydyangdan/UniPet#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ydyangdan/UniPet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ydyangdan/UniPet/issues"
+  },
+  "keywords": [
+    "desktop-pet",
+    "ai-agent",
+    "electron",
+    "hermes",
+    "openclaw",
+    "codex-pet",
+    "universal-pet"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "main": "overlay/main.js",
+  "bin": {
+    "unipet": "overlay/cli.js"
+  },
+  "scripts": {
+    "start": "electron overlay",
+    "check": "npm --prefix overlay run check && node --test connectors/openclaw/plugin/tests/*.test.js",
+    "test": "npm run check",
+    "pack:dry": "npm pack --dry-run"
+  },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "overlay/package.json",
+    "overlay/*.js",
+    "overlay/*.html",
+    "overlay/*.css",
+    "overlay/assets/**",
+    "connectors/hermes/install.ps1",
+    "connectors/hermes/install.sh",
+    "connectors/hermes/plugins/**",
+    "connectors/hermes/skills/**",
+    "connectors/openclaw/install.ps1",
+    "connectors/openclaw/install.sh",
+    "connectors/openclaw/plugin/index.js",
+    "connectors/openclaw/plugin/openclaw.plugin.json",
+    "connectors/openclaw/plugin/package.json",
+    "docs/**"
+  ],
+  "dependencies": {
+    "electron": "^33.0.0",
+    "ws": "^8.0.0"
+  }
+}

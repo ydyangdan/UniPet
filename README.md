@@ -36,7 +36,29 @@ Platform notes:
 - Hermes Agent and OpenClaw are optional. Install them only if you want automatic
   lifecycle integration.
 
-## Install From GitHub
+## Install
+
+For most users, install UniPet from npm:
+
+```bash
+npm install -g uni-pet
+unipet start
+```
+
+Connect the agents you use:
+
+```bash
+unipet setup hermes
+unipet setup openclaw
+```
+
+Update later with:
+
+```bash
+npm update -g uni-pet
+```
+
+GitHub source install is mainly for development or trying unreleased changes.
 
 Windows PowerShell:
 
@@ -54,8 +76,9 @@ cd UniPet
 ./install.sh
 ```
 
-The installer runs `npm install`, links the global `unipet` command, installs the
-Hermes connector by default, starts UniPet, and prints `unipet doctor` output.
+The source installer runs `npm install`, links the global `unipet` command,
+installs the Hermes connector by default, starts UniPet, and prints
+`unipet doctor` output.
 
 If you only want the desktop pet runtime and no Hermes files:
 
@@ -123,8 +146,14 @@ Installed pets and user config live under `~/.unipet`.
 
 ## Hermes Integration
 
-The top-level installer installs the Hermes connector automatically unless you
-pass `-NoHermesSkill` or `--no-hermes-skill`.
+For npm installs, use:
+
+```bash
+unipet setup hermes
+```
+
+For source installs, the top-level installer installs the Hermes connector
+automatically unless you pass `-NoHermesSkill` or `--no-hermes-skill`.
 
 Standalone Hermes connector install:
 
@@ -157,7 +186,13 @@ session.
 OpenClaw support is optional and uses a native hook plugin. It does not modify
 OpenClaw source code and has no npm runtime dependencies.
 
-Install UniPet and the OpenClaw plugin together:
+For npm installs, use:
+
+```bash
+unipet setup openclaw
+```
+
+For source installs, install UniPet and the OpenClaw plugin together:
 
 ```powershell
 .\install.ps1 -OpenClawPlugin
