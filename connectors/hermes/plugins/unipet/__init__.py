@@ -41,6 +41,8 @@ EVENT_URL = f"http://{HOST}:{PORT}/api/pet/events"
 HEALTH_URL = f"http://{HOST}:{PORT}/health"
 HTTP_TIMEOUT = max(0.05, _env_int("UNIPET_HERMES_TIMEOUT_MS", 350) / 1000)
 MIN_INTERVAL = max(0.0, _env_int("UNIPET_HERMES_MIN_INTERVAL_MS", 700) / 1000)
+ERROR_STATUSES = {"error", "failed", "failure", "exception"}
+ERROR_TEXT_PREFIXES = ("error:", "exception:", "traceback ")
 
 _last_signature: Optional[tuple[str, str, str, str]] = None
 _last_sent_at = 0.0
@@ -83,7 +85,14 @@ def _is_error_result(result: Any) -> bool:
     if result is None:
         return False
     if isinstance(result, dict):
-        return bool(result.get("error") or result.get("exception"))
+        status = str(result.get("status") or result.get("state") or "").strip().lower()
+        return bool(
+            result.get("error")
+            or result.get("exception")
+            or result.get("ok") is False
+            or result.get("success") is False
+            or status in ERROR_STATUSES
+        )
     if not isinstance(result, str):
         return False
 
@@ -94,7 +103,7 @@ def _is_error_result(result: Any) -> bool:
         parsed = json.loads(text)
     except Exception:
         lower = text.lower()
-        return lower.startswith("error:") or '"error"' in lower[:512]
+        return lower.startswith(ERROR_TEXT_PREFIXES)
     return _is_error_result(parsed)
 
 

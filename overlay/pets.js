@@ -148,8 +148,8 @@ function removePet(id) {
   const pet = getPet(clean);
   if (!pet) throw new Error(`Local pet not found: ${id}`);
   const wasCurrent = currentPetId() === clean;
-  fs.rmSync(pet.dir, { recursive: true, force: true });
   if (wasCurrent) setCurrentPet(BUILTIN_PET_ID);
+  fs.rmSync(pet.dir, { recursive: true, force: true });
   return { removed: pet, current: currentPet(), wasCurrent };
 }
 

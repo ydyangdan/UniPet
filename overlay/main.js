@@ -15,8 +15,15 @@ const { PROTOCOL_VERSION, PetStore, normalizeEvent } = require('./core');
 const { rendererPetConfig, setCurrentPet } = require('./pets');
 
 // Safe console for background mode (EPIPE guard)
-const log = (...args) => { try { console.log(...args); } catch (_) {} };
-const warn = (...args) => { try { console.warn(...args); } catch (_) {} };
+function safeConsole(method, args) {
+    try {
+        console[method](...args);
+    } catch (err) {
+        if (!err || err.code !== 'EPIPE') throw err;
+    }
+}
+const log = (...args) => safeConsole('log', args);
+const warn = (...args) => safeConsole('warn', args);
 
 // ---- Config ----
 const BRIDGE_HOST = process.env.UNIPET_HOST || '127.0.0.1';

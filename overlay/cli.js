@@ -19,6 +19,14 @@ console.error = (...args) => {
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 8768;
 const DEFAULT_WS_PORT = 8769;
+const STARTUP_TIMEOUT_MS = 15000;
+const STARTUP_POLL_MS = 250;
+const STOP_TIMEOUT_MS = 3000;
+const KILL_TIMEOUT_MS = 1500;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function unipetHome() {
   return process.env.UNIPET_HOME || path.join(os.homedir(), '.unipet');
@@ -50,13 +58,13 @@ function processExists(pid) {
   }
 }
 
-function terminateProcess(pid) {
+function terminateProcess(pid, options = {}) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
     if (process.platform === 'win32') {
       spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore' });
     } else {
-      process.kill(pid, 'SIGTERM');
+      process.kill(pid, options.force ? 'SIGKILL' : 'SIGTERM');
     }
     return true;
   } catch (_) {
@@ -64,8 +72,18 @@ function terminateProcess(pid) {
   }
 }
 
+async function waitForProcessExit(pid, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!processExists(pid)) return true;
+    await sleep(100);
+  }
+  return !processExists(pid);
+}
+
 function electronOverlayProcessPids() {
   if (process.platform !== 'win32') return [];
+  const overlayDir = __dirname.replace(/\//g, '\\').toLowerCase();
   const result = spawnSync('wmic', ['process', 'get', 'ProcessId,CommandLine', '/format:list'], {
     encoding: 'utf8',
   });
@@ -78,8 +96,7 @@ function electronOverlayProcessPids() {
       command = line.slice('CommandLine='.length).replace(/\//g, '\\').toLowerCase();
     } else if (line.startsWith('ProcessId=')) {
       const pid = Number.parseInt(line.slice('ProcessId='.length), 10);
-      const isUniPetElectron = command.includes('electron') &&
-        (command.includes('\\unipet\\overlay') || command.includes('unipet-overlay'));
+      const isUniPetElectron = command.includes('electron') && command.includes(overlayDir);
       if (Number.isInteger(pid) && isUniPetElectron) pids.push(pid);
       command = '';
     }
@@ -261,7 +278,7 @@ async function cmdStart(args) {
 
   const electron = electronBinary();
   if (!electron) {
-    console.error("Electron dependency not found. Run 'npm install' inside the overlay directory.");
+    console.error("Electron dependency not found. Reinstall with 'npm install -g uni-pet', or run 'npm install' in the project root.");
     return 1;
   }
 
@@ -290,13 +307,13 @@ async function cmdStart(args) {
     child.unref();
   }
 
-  for (let i = 0; i < 30; i += 1) {
+  for (let waited = 0; waited < STARTUP_TIMEOUT_MS; waited += STARTUP_POLL_MS) {
     const started = await health(host, port);
     if (started && started.runtime === 'node-electron') {
       console.log(`UniPet started: http://${host}:${port}`);
       return 0;
     }
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await sleep(STARTUP_POLL_MS);
   }
 
   console.error("UniPet failed to start. Run 'unipet doctor' for details.");
@@ -344,17 +361,37 @@ async function ensureRunning() {
 
 async function cmdStop() {
   const runtime = readRuntime();
+  let canRemoveRuntime = true;
   if (runtime && runtime.pid) {
-    terminateProcess(runtime.pid);
-    console.log(`UniPet stopped (pid ${runtime.pid})`);
+    if (processExists(runtime.pid)) {
+      terminateProcess(runtime.pid);
+      let stopped = await waitForProcessExit(runtime.pid, STOP_TIMEOUT_MS);
+      if (!stopped && process.platform !== 'win32') {
+        terminateProcess(runtime.pid, { force: true });
+        stopped = await waitForProcessExit(runtime.pid, KILL_TIMEOUT_MS);
+      }
+      if (stopped) {
+        console.log(`UniPet stopped (pid ${runtime.pid})`);
+      } else {
+        canRemoveRuntime = false;
+        console.error(`UniPet did not stop within ${STOP_TIMEOUT_MS + KILL_TIMEOUT_MS}ms (pid ${runtime.pid})`);
+      }
+    } else {
+      console.log(`UniPet runtime pid ${runtime.pid} is not running`);
+    }
   } else {
     console.log('UniPet: not running');
   }
   stopOverlayProcesses();
-  try {
-    fs.rmSync(runtimePath(), { force: true });
-  } catch (_) {}
-  return 0;
+  if (!canRemoveRuntime && runtime && runtime.pid && !processExists(runtime.pid)) {
+    canRemoveRuntime = true;
+  }
+  if (canRemoveRuntime) {
+    try {
+      fs.rmSync(runtimePath(), { force: true });
+    } catch (_) {}
+  }
+  return canRemoveRuntime ? 0 : 1;
 }
 
 async function cmdEmit(args) {
