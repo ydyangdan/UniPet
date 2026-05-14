@@ -46,6 +46,7 @@ let httpServer = null;
 let wsServer = null;
 let bridgeStore = null;
 let lastBroadcast = '';
+let broadcastTimer = null;
 
 function readRenderScale(value) {
     const parsed = Number.parseFloat(value || '0.5');
@@ -176,6 +177,14 @@ function broadcastState(force = false) {
     }
 }
 
+function handleBridgeError(service, err) {
+    if (app.isQuitting) return;
+    warn(`[unipet] ${service} bridge error:`, err.message);
+    app.isQuitting = true;
+    stopBridge();
+    app.quit();
+}
+
 function startBridge() {
     if (httpServer || wsServer) return;
     bridgeStore = new PetStore();
@@ -242,12 +251,14 @@ function startBridge() {
         }
         sendJson(res, 404, { error: 'not found' });
     });
+    httpServer.on('error', (err) => handleBridgeError('HTTP', err));
 
     httpServer.listen(Number(BRIDGE_PORT), BRIDGE_HOST, () => {
         log(`[unipet] HTTP bridge listening on http://${BRIDGE_HOST}:${BRIDGE_PORT}`);
     });
 
     wsServer = new WebSocket.Server({ host: BRIDGE_HOST, port: Number(BRIDGE_WS_PORT), path: '/ws' });
+    wsServer.on('error', (err) => handleBridgeError('WebSocket', err));
     wsServer.on('connection', (socket) => {
         socket.send(JSON.stringify({ type: 'state_update', ...bridgeView() }));
         socket.on('message', (raw) => {
@@ -262,11 +273,15 @@ function startBridge() {
     });
 
     writeRuntime();
-    setInterval(() => broadcastState(false), 1000);
+    broadcastTimer = setInterval(() => broadcastState(false), 1000);
 }
 
 function stopBridge() {
     removeRuntime();
+    if (broadcastTimer) {
+        clearInterval(broadcastTimer);
+        broadcastTimer = null;
+    }
     if (wsServer) {
         try { wsServer.close(); } catch (_) {}
         wsServer = null;

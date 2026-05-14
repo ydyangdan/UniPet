@@ -38,6 +38,10 @@
         "type": "number",
         "default": 20
       },
+      "idleDelayMs": {
+        "type": "number",
+        "default": 30000
+      },
       "perAgent": {
         "type": "boolean",
         "default": false
@@ -60,6 +64,10 @@
     "bubbleMode": {
       "label": "Bubble Mode",
       "help": "Show the first characters of outgoing OpenClaw replies, or turn reply bubbles off."
+    },
+    "idleDelayMs": {
+      "label": "Idle Delay",
+      "help": "Milliseconds to keep the final review state visible before clearing the OpenClaw source."
     },
     "perAgent": {
       "label": "Per Agent Source",

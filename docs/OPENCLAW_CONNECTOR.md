@@ -53,6 +53,8 @@ The OpenClaw connector maps hooks like this:
 | `message_sent` failure | `failed` | OpenClaw reply failed to send |
 | `approval_required` | `waiting` | OpenClaw is waiting for approval |
 | `agent_end` failure | `failed` | OpenClaw turn failed |
+| `agent_end` success | cleanup | Clear OpenClaw source after a short review delay |
+| `session_end` / `before_reset` / `gateway_stop` | cleanup | Remove OpenClaw source |
 
 The plugin is best-effort. If UniPet is not running, OpenClaw continues normally and the connector only logs a debug message.
 
@@ -66,6 +68,7 @@ UNIPET_PORT=8768
 UNIPET_OPENCLAW_TIMEOUT_MS=350
 UNIPET_OPENCLAW_BUBBLE_MODE=first20
 UNIPET_OPENCLAW_BUBBLE_CHARS=20
+UNIPET_OPENCLAW_IDLE_DELAY_MS=30000
 UNIPET_OPENCLAW_PER_AGENT=0
 ```
 

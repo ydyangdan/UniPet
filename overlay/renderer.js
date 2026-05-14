@@ -26,16 +26,6 @@ const RENDER_SCALE = readRenderScale();
 const DISPLAY_W = Math.round(CELL_W * RENDER_SCALE);
 const DISPLAY_H = Math.round(CELL_H * RENDER_SCALE);
 
-// Keep the public state model identical to Codex Pet:
-// idle, running, waiting, failed, review.
-const STATE_ALIASES = {
-    error:  'failed',
-    thinking: 'running',
-    planning: 'running',
-    busy:    'waiting',
-    offline: 'idle',
-};
-
 // ---- DOM refs ----
 const spriteEl = document.getElementById('pet-sprite');
 const bubbleEl = document.getElementById('pet-bubble');
@@ -80,28 +70,14 @@ const anim = {
         spriteEl.title = config.displayName || this.petId || 'UniPet';
     },
 
-    /** Set spritesheet from a Codex pet directory. */
-    loadCodexPet(petDir) {
-        const manifest = petDir + '/pet.json';
-        fetch(manifest).then(r => r.json()).then(data => {
-            const ss = petDir + '/' + (data.spritesheetPath || 'spritesheet.webp');
-            this.loadSpritesheet(ss);
-            statusEl.textContent = data.displayName || data.id || '';
-        }).catch(() => {
-            // try loading spritesheet directly
-            this.loadSpritesheet(petDir + '/spritesheet.webp');
-        });
-    },
-
     /** Get animation config for a state name. */
     getConfig(stateName) {
-        const normalized = STATE_ALIASES[stateName] || stateName;
-        return ANIMATION_ROWS[normalized] || ANIMATION_ROWS.idle;
+        return ANIMATION_ROWS[stateName] || ANIMATION_ROWS.idle;
     },
 
     /** Transition to a new state. */
     transition(stateName, message) {
-        const normalized = STATE_ALIASES[stateName] || stateName;
+        const normalized = stateName || 'idle';
         const cfg = this.getConfig(normalized);
 
         // Keep looping animations running while still updating fresh messages.
@@ -172,7 +148,7 @@ const anim = {
         const returnState = this.currentState && this.currentState !== stateName
             ? this.currentState
             : 'idle';
-        const normalized = STATE_ALIASES[stateName] || stateName;
+        const normalized = stateName || 'idle';
         const cfg = this.getConfig(normalized);
         if (cfg.loop || this.currentState === normalized) return;
 

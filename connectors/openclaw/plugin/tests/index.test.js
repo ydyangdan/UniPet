@@ -27,4 +27,5 @@ test('resolves defaults without plugin config', () => {
   assert.equal(cfg.host, '127.0.0.1');
   assert.equal(cfg.port, 8768);
   assert.equal(cfg.bubbleMode, 'first20');
+  assert.equal(cfg.idleDelayMs, 30000);
 });

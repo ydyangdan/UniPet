@@ -5,10 +5,12 @@ const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 8768;
 const DEFAULT_TIMEOUT_MS = 350;
 const DEFAULT_BUBBLE_CHARS = 20;
+const DEFAULT_IDLE_DELAY_MS = 30000;
 const DEDUPE_WINDOW_MS = 700;
 
 let lastEmitKey = '';
 let lastEmitAt = 0;
+const cleanupTimers = new Map();
 
 function clampNumber(value, fallback, min, max) {
   const parsed = Number.parseInt(value, 10);
@@ -47,6 +49,12 @@ export function resolveConfig(api) {
       DEFAULT_BUBBLE_CHARS,
       0,
       80,
+    ),
+    idleDelayMs: clampNumber(
+      envText('UNIPET_OPENCLAW_IDLE_DELAY_MS', pluginConfig.idleDelayMs),
+      DEFAULT_IDLE_DELAY_MS,
+      1000,
+      600000,
     ),
     perAgent: envBoolean('UNIPET_OPENCLAW_PER_AGENT', pluginConfig.perAgent === true),
   };
@@ -135,11 +143,18 @@ function sourceInfo(event, ctx, cfg) {
 
 function shouldEmit(payload) {
   const now = Date.now();
-  const key = `${payload.source_id}|${payload.state}|${payload.message}|${payload.notification_kind || ''}`;
+  const key = `${payload.source_id}|${payload.action}|${payload.state}|${payload.message}|${payload.notification_kind || ''}`;
   if (key === lastEmitKey && now - lastEmitAt < DEDUPE_WINDOW_MS) return false;
   lastEmitKey = key;
   lastEmitAt = now;
   return true;
+}
+
+function clearCleanupTimer(sourceId) {
+  const timer = cleanupTimers.get(sourceId);
+  if (!timer) return;
+  clearTimeout(timer);
+  cleanupTimers.delete(sourceId);
 }
 
 function postJson(cfg, payload) {
@@ -157,6 +172,7 @@ function postJson(cfg, payload) {
       },
     }, (res) => {
       res.resume();
+      res.on('error', reject);
       res.on('end', () => {
         if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
           resolve();
@@ -180,9 +196,11 @@ async function emit(api, event, ctx, state, message, options = {}) {
     ...sourceInfo(event, ctx, cfg),
     state,
     message: message || state,
-    action: 'update',
+    action: options.action || 'update',
     ttl_ms: options.ttlMs || 120000,
   };
+
+  if (payload.action !== 'remove') clearCleanupTimer(payload.source_id);
 
   if (options.notificationKind) {
     payload.notification_kind = options.notificationKind;
@@ -201,6 +219,28 @@ function safeEmit(api, event, ctx, state, message, options) {
   void emit(api, event, ctx, state, message, options).catch((err) => {
     logger(api).debug?.(`unipet-openclaw: could not reach UniPet bridge: ${err.message}`);
   });
+}
+
+function removeSource(api, event, ctx, message = 'OpenClaw session ended') {
+  const cfg = resolveConfig(api);
+  clearCleanupTimer(sourceInfo(event, ctx, cfg).source_id);
+  safeEmit(api, event, ctx, 'idle', message, {
+    action: 'remove',
+    ttlMs: 1000,
+  });
+}
+
+function scheduleSourceRemoval(api, event, ctx) {
+  const cfg = resolveConfig(api);
+  if (!cfg.enabled) return;
+  const source = sourceInfo(event, ctx, cfg);
+  clearCleanupTimer(source.source_id);
+  const timer = setTimeout(() => {
+    cleanupTimers.delete(source.source_id);
+    removeSource(api, event, ctx, 'OpenClaw turn ended');
+  }, cfg.idleDelayMs);
+  if (typeof timer.unref === 'function') timer.unref();
+  cleanupTimers.set(source.source_id, timer);
 }
 
 function observe(api, hookName, handler) {
@@ -273,7 +313,21 @@ const plugin = {
     observe(api, 'agent_end', (event, ctx) => {
       if (isFailure(event)) {
         safeEmit(api, event, ctx, 'failed', 'OpenClaw turn failed', { ttlMs: 300000 });
+        return;
       }
+      scheduleSourceRemoval(api, event, ctx);
+    });
+
+    observe(api, 'session_end', (event, ctx) => {
+      removeSource(api, event, ctx);
+    });
+
+    observe(api, 'before_reset', (event, ctx) => {
+      removeSource(api, event, ctx, 'OpenClaw session reset');
+    });
+
+    observe(api, 'gateway_stop', (event, ctx) => {
+      removeSource(api, event, ctx, 'OpenClaw gateway stopped');
     });
   },
 };
