@@ -60,6 +60,12 @@ connectors/openclaw/plugin
   - message and agent lifecycle mapping
   - best-effort local HTTP event emission
   - no OpenClaw source changes
+
+connectors/deepseek-tui
+  - DeepSeek-TUI lifecycle hook commands
+  - user config marker block under ~/.deepseek/config.toml
+  - best-effort local HTTP event emission
+  - no DeepSeek-TUI source changes
 ```
 
 ## State Model
@@ -98,6 +104,19 @@ OpenClaw native hook
         |
         v
 connectors/openclaw/plugin
+        |
+        | POST http://127.0.0.1:8768/api/pet/events
+        v
+overlay/main.js bridge
+```
+
+Automatic DeepSeek-TUI path:
+
+```text
+DeepSeek-TUI lifecycle hook
+        |
+        v
+unipet hook deepseek-tui <event>
         |
         | POST http://127.0.0.1:8768/api/pet/events
         v
@@ -176,4 +195,5 @@ The optional environment variable `UNIPET_RENDER_SCALE` can tune this for testin
 - Market import uses Node built-ins only; no zip extraction or image conversion is needed for the first version.
 - Zero-intrusion Hermes integration: install plugin/skill under Hermes home, do not edit Hermes core.
 - Zero-intrusion OpenClaw integration: install a native plugin through OpenClaw's plugin CLI, do not edit OpenClaw source.
+- Zero-intrusion DeepSeek-TUI integration: install lifecycle hook commands in the user config, do not edit DeepSeek-TUI source.
 - Replaceable shell: the HTTP event contract is stable enough for a future lighter UI shell.

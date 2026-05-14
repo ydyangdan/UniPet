@@ -2,11 +2,12 @@
 
 [中文文档](README_zh.md)
 
-UniPet is a Universal Desktop Pet
-it is a lightweight, cross-platform Node.js + Electron overlay that runs
-locally and exposes a simple localhost bridge, so Hermes, OpenClaw, shell
-scripts, or your own agent can drive pet states without modifying their core
-code.
+UniPet is a Universal Desktop Pet.
+
+It is a lightweight, cross-platform Node.js + Electron desktop pet inspired by
+Codex Pet. It runs locally and exposes a simple localhost bridge, so Hermes,
+OpenClaw, DeepSeek-TUI, shell scripts, or your own agent can drive pet states
+without modifying their core code.
 
 ![UniPet Hermes demo](docs/assets/unipet-hermes-demo.png)
 
@@ -19,7 +20,8 @@ code.
 - Supports hover/click jumping and draggable positioning.
 - Installs, lists, switches, and removes local pets.
 - Downloads Codex-compatible pets from the pet market.
-- Integrates with Hermes and OpenClaw through optional zero-intrusion plugins.
+- Integrates with Hermes, OpenClaw, and DeepSeek-TUI through optional
+  zero-intrusion connectors.
 
 UniPet itself does not require Python. The Hermes connector contains a tiny
 Python plugin only because Hermes loads plugins in its own Python environment;
@@ -36,7 +38,7 @@ Platform notes:
 - Windows is the primary tested target.
 - macOS and Linux use the same Node.js/Electron runtime and `install.sh`.
 - WSL needs WSLg or another working Linux GUI display.
-- Hermes Agent and OpenClaw are optional. Install them only if you want automatic
+- Hermes Agent, OpenClaw, and DeepSeek-TUI are optional. Install them only if you want automatic
   lifecycle integration.
 
 ## Install
@@ -53,6 +55,7 @@ Connect the agents you use:
 ```bash
 unipet setup hermes
 unipet setup openclaw
+unipet setup deepseek-tui
 ```
 
 Update later with:
@@ -96,7 +99,7 @@ If you only want the desktop pet runtime and no Hermes files:
 If a Unix checkout loses executable bits, run:
 
 ```bash
-chmod +x ./install.sh ./connectors/hermes/install.sh ./connectors/openclaw/install.sh
+chmod +x ./install.sh ./connectors/hermes/install.sh ./connectors/openclaw/install.sh ./connectors/deepseek-tui/install.sh
 ```
 
 ## Daily Use
@@ -215,9 +218,32 @@ Standalone OpenClaw plugin install:
 ./connectors/openclaw/install.sh
 ```
 
-Restart OpenClaw Gateway after enabling the plugin so startup hooks are loaded.
-
-## Project Layout
+Restart OpenClaw Gateway after enabling the plugin so startup hooks are loaded.
+
+## DeepSeek-TUI Integration
+
+DeepSeek-TUI support is optional and uses the official lifecycle hooks in
+`~/.deepseek/config.toml`. It does not modify DeepSeek-TUI source code.
+
+For npm installs, use:
+
+```bash
+unipet setup deepseek-tui
+```
+
+Standalone connector install:
+
+```powershell
+.\connectors\deepseek-tui\install.ps1
+```
+
+```bash
+./connectors/deepseek-tui/install.sh
+```
+
+Restart DeepSeek-TUI after installation so hooks are loaded.
+
+## Project Layout
 
 ```text
 UniPet/
@@ -228,12 +254,13 @@ UniPet/
 |   |-- market.js                    Codex pet market client
 |   |-- pets.js                      local pet library
 |   |-- renderer.js                  spritesheet animation renderer
-|   |-- tests/                       Node test suite
-|   `-- assets/default/              bundled default pet
-|-- connectors/hermes/               Hermes plugin and skill
-|-- connectors/openclaw/             OpenClaw hook plugin
-|-- docs/                            design notes
-|-- install.ps1                      Windows installer
+|   |-- tests/                       Node test suite
+|   `-- assets/default/              bundled default pet
+|-- connectors/hermes/               Hermes plugin and skill
+|-- connectors/openclaw/             OpenClaw hook plugin
+|-- connectors/deepseek-tui/             DeepSeek-TUI hook connector
+|-- docs/                            design notes
+|-- install.ps1                      Windows installer
 `-- install.sh                       Unix installer
 ```
 
@@ -249,7 +276,8 @@ npm start
 Run connector tests:
 
 ```bash
-node --test ../connectors/openclaw/plugin/tests/*.test.js
+node --test ../connectors/openclaw/plugin/tests/*.test.js
+node --test ../connectors/deepseek-tui/tests/*.test.js
 ```
 
 ## Troubleshooting
@@ -258,8 +286,8 @@ node --test ../connectors/openclaw/plugin/tests/*.test.js
   pet, and command setup.
 - If `127.0.0.1:8768` is already in use, stop the old UniPet process with
   `unipet stop`, then run `unipet start`.
-- If Hermes or OpenClaw events do not show up, restart the agent session or
-  gateway after installing/enabling the connector.
+- If Hermes, OpenClaw, or DeepSeek-TUI events do not show up, restart the agent session or
+  gateway/TUI after installing/enabling the connector.
 - If the pet does not appear on Linux or WSL, verify that Electron can open a GUI
   window in your desktop session.
 
@@ -267,8 +295,10 @@ node --test ../connectors/openclaw/plugin/tests/*.test.js
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Hermes Skill Contract](docs/HERMES_SKILL_CONTRACT.md)
-- [OpenClaw Connector](docs/OPENCLAW_CONNECTOR.md)
-
+- [OpenClaw Connector](docs/OPENCLAW_CONNECTOR.md)
+
+- [DeepSeek-TUI Connector](docs/DEEPSEEK_TUI_CONNECTOR.md)
+
 ## License
 
 MIT

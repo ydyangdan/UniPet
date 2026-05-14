@@ -248,6 +248,24 @@ function runOpenClawSetup(options) {
   return runInherited('bash', args);
 }
 
+function runDeepSeekTuiSetup(options) {
+  console.log('Setting up UniPet DeepSeek-TUI connector...');
+  if (process.platform === 'win32') {
+    const scriptPath = ensureSetupScript('deepseek-tui', 'ps1');
+    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath];
+    if (!options.start) args.push('-NoStart');
+    if (options.config) args.push('-ConfigPath', options.config);
+    if (options.unipetCommand) args.push('-UnipetCommand', options.unipetCommand);
+    return runInherited('powershell.exe', args);
+  }
+  const scriptPath = ensureSetupScript('deepseek-tui', 'sh');
+  const args = [scriptPath];
+  if (!options.start) args.push('--no-start');
+  if (options.config) args.push('--config', options.config);
+  if (options.unipetCommand) args.push('--unipet-command', options.unipetCommand);
+  return runInherited('bash', args);
+}
+
 async function liveRuntime() {
   const runtime = readRuntime();
   if (!runtime || !processExists(runtime.pid)) {
@@ -604,6 +622,7 @@ async function cmdSetup(args) {
     console.log(`Usage:
   unipet setup hermes [--start] [--hermes-home path]
   unipet setup openclaw [--start] [--copy] [--no-enable] [--skip-validate]
+  unipet setup deepseek-tui [--start] [--config path]
   unipet setup all [--start]
 `);
     return target ? 0 : 1;
@@ -614,13 +633,29 @@ async function cmdSetup(args) {
   if (target === 'openclaw') {
     return runOpenClawSetup(options);
   }
+  if (target === 'deepseek-tui') {
+    return runDeepSeekTuiSetup(options);
+  }
   if (target === 'all') {
     const hermesCode = runHermesSetup(options);
     if (hermesCode !== 0) return hermesCode;
-    return runOpenClawSetup(options);
+    const openClawCode = runOpenClawSetup(options);
+    if (openClawCode !== 0) return openClawCode;
+    return runDeepSeekTuiSetup(options);
   }
   console.error(`Unknown setup target: ${target}`);
-  console.error('Usage: unipet setup <hermes|openclaw|all>');
+  console.error('Usage: unipet setup <hermes|openclaw|deepseek-tui|all>');
+  return 1;
+}
+
+async function cmdHook(args) {
+  const [target, ...rest] = args;
+  if (target === 'deepseek-tui') {
+    const deepseekTui = require('../connectors/deepseek-tui/hook');
+    return deepseekTui.main(rest);
+  }
+  console.error(`Unknown hook target: ${target || ''}`);
+  console.error('Usage: unipet hook deepseek-tui <event>');
   return 1;
 }
 
@@ -636,7 +671,7 @@ Commands:
   unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--label text] [--ttl-ms n]
   unipet market <list|search|info|install>
   unipet pet <list|current|use|remove>
-  unipet setup <hermes|openclaw|all>
+  unipet setup <hermes|openclaw|deepseek-tui|all>
 `);
 }
 
@@ -677,6 +712,10 @@ async function main() {
     }
     if (command === 'setup') {
       process.exitCode = await cmdSetup(args);
+      return;
+    }
+    if (command === 'hook') {
+      process.exitCode = await cmdHook(args);
       return;
     }
     if (command === 'help' || command === '--help' || command === '-h') {

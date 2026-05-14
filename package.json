@@ -1,6 +1,6 @@
 {
   "name": "uni-pet",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Universal desktop pet for AI coding agents",
   "license": "MIT",
   "author": "ydyangdan",
@@ -34,7 +34,7 @@
   },
   "scripts": {
     "start": "electron overlay",
-    "check": "npm --prefix overlay run check && node --test connectors/openclaw/plugin/tests/*.test.js",
+    "check": "npm --prefix overlay run check && node --test connectors/openclaw/plugin/tests/*.test.js && node --test connectors/deepseek-tui/tests/*.test.js",
     "test": "npm run check",
     "pack:dry": "npm pack --dry-run"
   },
@@ -55,6 +55,10 @@
     "connectors/openclaw/plugin/index.js",
     "connectors/openclaw/plugin/openclaw.plugin.json",
     "connectors/openclaw/plugin/package.json",
+    "connectors/deepseek-tui/install.js",
+    "connectors/deepseek-tui/install.ps1",
+    "connectors/deepseek-tui/install.sh",
+    "connectors/deepseek-tui/hook.js",
     "docs/**"
   ],
   "dependencies": {

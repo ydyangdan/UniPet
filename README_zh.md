@@ -2,8 +2,8 @@
 
 UniPet 是一款面向 AI 编程助手的通用桌面宠物。灵感来源于 Codex Pet，
 它是一个轻量级、跨平台的 Node.js + Electron 悬浮窗，在本地运行并
-提供简单的 localhost 桥接服务，让 Hermes、OpenClaw、shell 脚本或
-你自己的 AI agent 都能驱动宠物状态，无需修改它们的内核代码。
+提供简单的 localhost 桥接服务，让 Hermes、OpenClaw、DeepSeek-TUI、
+shell 脚本或你自己的 AI agent 都能驱动宠物状态，无需修改它们的内核代码。
 
 ![UniPet Hermes demo](docs/assets/unipet-hermes-demo.png)
 
@@ -15,7 +15,7 @@ UniPet 是一款面向 AI 编程助手的通用桌面宠物。灵感来源于 Co
 - 支持鼠标悬浮 / 点击跳跃动画，可拖拽移动
 - 安装、列出、切换、删除本地宠物
 - 从宠物市场下载 Codex 兼容的宠物
-- 通过可选的零侵入插件集成 Hermes 和 OpenClaw
+- 通过可选的零侵入连接器集成 Hermes、OpenClaw 和 DeepSeek-TUI
 
 UniPet 本身不需要 Python。Hermes 连接器里有一个微小的 Python 插件，
 仅仅是因为 Hermes 在自己的 Python 环境中加载插件；该插件只用了 Python
@@ -32,7 +32,7 @@ UniPet 本身不需要 Python。Hermes 连接器里有一个微小的 Python 插
 - Windows 是主要测试平台
 - macOS 和 Linux 使用相同的 Node.js/Electron 运行时和 `install.sh`
 - WSL 需要 WSLg 或其他可用的 Linux GUI 显示
-- Hermes Agent 和 OpenClaw 是可选的。仅当需要自动生命周期集成时才安装
+- Hermes Agent、OpenClaw 和 DeepSeek-TUI 是可选的。仅当需要自动生命周期集成时才安装
 
 ## 安装
 
@@ -48,6 +48,7 @@ unipet start
 ```bash
 unipet setup hermes
 unipet setup openclaw
+unipet setup deepseek-tui
 ```
 
 后续更新：
@@ -90,7 +91,7 @@ cd UniPet
 如果 Unix clone 后丢失了可执行权限，运行：
 
 ```bash
-chmod +x ./install.sh ./connectors/hermes/install.sh ./connectors/openclaw/install.sh
+chmod +x ./install.sh ./connectors/hermes/install.sh ./connectors/openclaw/install.sh ./connectors/deepseek-tui/install.sh
 ```
 
 ## 日常使用
@@ -210,6 +211,29 @@ unipet setup openclaw
 
 启用插件后需重启 OpenClaw Gateway，以便加载启动 hooks。
 
+## DeepSeek-TUI 集成
+
+DeepSeek-TUI 支持是可选的，使用 `~/.deepseek/config.toml` 中的官方生命周期
+hooks 实现。不修改 DeepSeek-TUI 源代码。
+
+npm 安装的用户：
+
+```bash
+unipet setup deepseek-tui
+```
+
+单独安装 DeepSeek-TUI 连接器：
+
+```powershell
+.\connectors\deepseek-tui\install.ps1
+```
+
+```bash
+./connectors/deepseek-tui/install.sh
+```
+
+安装后需重启 DeepSeek-TUI，以便加载 hooks。
+
 ## 项目结构
 
 ```text
@@ -225,6 +249,7 @@ UniPet/
 |   `-- assets/default/              内置默认宠物
 |-- connectors/hermes/               Hermes 插件和 skill
 |-- connectors/openclaw/             OpenClaw hook 插件
+|-- connectors/deepseek-tui/             DeepSeek-TUI hook 连接器
 |-- docs/                            设计文档
 |-- install.ps1                      Windows 安装脚本
 `-- install.sh                       Unix 安装脚本
@@ -243,13 +268,14 @@ npm start
 
 ```bash
 node --test ../connectors/openclaw/plugin/tests/*.test.js
+node --test ../connectors/deepseek-tui/tests/*.test.js
 ```
 
 ## 故障排查
 
 - 先运行 `unipet doctor`。它会检查本地桥、运行时文件、当前宠物和命令配置
 - 如果 `127.0.0.1:8768` 已被占用，用 `unipet stop` 停止旧进程再 `unipet start`
-- 如果 Hermes 或 OpenClaw 事件不显示，安装/启用连接器后重启 agent 会话或 gateway
+- 如果 Hermes、OpenClaw 或 DeepSeek-TUI 事件不显示，安装/启用连接器后重启 agent 会话、gateway 或 TUI
 - 如果在 Linux 或 WSL 上看不到宠物，确认 Electron 能在你的桌面环境中打开 GUI 窗口
 
 ## 文档
@@ -257,6 +283,7 @@ node --test ../connectors/openclaw/plugin/tests/*.test.js
 - [架构设计](docs/ARCHITECTURE.md)
 - [Hermes Skill 约定](docs/HERMES_SKILL_CONTRACT.md)
 - [OpenClaw 连接器](docs/OPENCLAW_CONNECTOR.md)
+- [DeepSeek-TUI 连接器](docs/DEEPSEEK_TUI_CONNECTOR.md)
 
 ## 许可证
 
