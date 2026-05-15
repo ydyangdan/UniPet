@@ -51,6 +51,14 @@ unipet setup openclaw
 unipet setup deepseek-tui
 ```
 
+`setup` 命令作为日常快捷入口会继续保留。完整连接器生命周期管理可以使用：
+
+```bash
+unipet connector status
+unipet connector disable hermes
+unipet connector remove hermes
+```
+
 后续更新：
 
 ```bash

@@ -58,6 +58,15 @@ unipet setup openclaw
 unipet setup deepseek-tui
 ```
 
+The `setup` shortcuts are kept for daily use. For full connector lifecycle
+management, use:
+
+```bash
+unipet connector status
+unipet connector disable hermes
+unipet connector remove hermes
+```
+
 Update later with:
 
 ```bash

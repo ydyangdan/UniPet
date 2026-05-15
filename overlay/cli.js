@@ -5,6 +5,7 @@ const http = require('http');
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
+const connectorLifecycle = require('./connectors');
 const market = require('./market');
 const pets = require('./pets');
 
@@ -263,6 +264,20 @@ function runDeepSeekTuiSetup(options) {
   if (options.config) args.push('--config', options.config);
   if (options.unipetCommand) args.push('--unipet-command', options.unipetCommand);
   return runInherited('bash', args);
+}
+
+function setupConnectorTarget(target, options) {
+  if (target === 'hermes') return runHermesSetup(options);
+  if (target === 'openclaw') return runOpenClawSetup(options);
+  if (target === 'deepseek-tui') return runDeepSeekTuiSetup(options);
+  if (target === 'all') {
+    const hermesCode = runHermesSetup(options);
+    if (hermesCode !== 0) return hermesCode;
+    const openClawCode = runOpenClawSetup(options);
+    if (openClawCode !== 0) return openClawCode;
+    return runDeepSeekTuiSetup(options);
+  }
+  throw new Error(`Unknown connector: ${target}`);
 }
 
 async function liveRuntime() {
@@ -613,7 +628,8 @@ async function cmdMarket(args) {
 async function cmdSetup(args) {
   const { options, rest } = parseOptions(args);
   const [target] = rest;
-  if (!target || target === 'help' || target === '--help' || target === '-h') {
+  const wantsHelp = options.help || rest.includes('--help') || rest.includes('-h');
+  if (!target || target === 'help' || wantsHelp) {
     console.log(`Usage:
   unipet setup hermes [--start] [--hermes-home path]
   unipet setup openclaw [--start] [--copy] [--no-enable] [--skip-validate]
@@ -622,24 +638,65 @@ async function cmdSetup(args) {
 `);
     return target ? 0 : 1;
   }
-  if (target === 'hermes') {
-    return runHermesSetup(options);
+  try {
+    return setupConnectorTarget(target, options);
+  } catch (err) {
+    console.error(err.message);
+    console.error('Usage: unipet setup <hermes|openclaw|deepseek-tui|all>');
+    return 1;
   }
-  if (target === 'openclaw') {
-    return runOpenClawSetup(options);
+}
+
+async function cmdConnector(args) {
+  const [rawSubcommand, ...remaining] = args;
+  const subcommand = rawSubcommand || 'status';
+  if (subcommand === 'help' || subcommand === '--help' || subcommand === '-h') {
+    console.log(`Usage:
+  unipet connector list
+  unipet connector status [hermes|openclaw|deepseek-tui|all]
+  unipet connector setup <hermes|openclaw|deepseek-tui|all>
+  unipet connector disable <hermes|openclaw|deepseek-tui|all>
+  unipet connector remove <hermes|openclaw|deepseek-tui|all>
+
+Shortcuts:
+  unipet setup hermes
+  unipet setup openclaw
+  unipet setup deepseek-tui
+`);
+    return 0;
   }
-  if (target === 'deepseek-tui') {
-    return runDeepSeekTuiSetup(options);
+
+  if (subcommand === 'setup' || subcommand === 'install' || subcommand === 'enable') {
+    return cmdSetup(remaining);
   }
-  if (target === 'all') {
-    const hermesCode = runHermesSetup(options);
-    if (hermesCode !== 0) return hermesCode;
-    const openClawCode = runOpenClawSetup(options);
-    if (openClawCode !== 0) return openClawCode;
-    return runDeepSeekTuiSetup(options);
+
+  const { options, rest } = parseOptions(remaining);
+  const [target = 'all'] = rest;
+
+  try {
+    if (subcommand === 'list') {
+      console.log('Connectors:');
+      for (const connector of connectorLifecycle.connectorList()) {
+        console.log(`  ${connector.id.padEnd(14)} ${connector.description}`);
+      }
+      return 0;
+    }
+    if (subcommand === 'status' || subcommand === 'doctor') {
+      return connectorLifecycle.printStatus(target, options);
+    }
+    if (subcommand === 'disable') {
+      return connectorLifecycle.disableConnector(target, options);
+    }
+    if (subcommand === 'remove' || subcommand === 'uninstall') {
+      return connectorLifecycle.removeConnector(target, options);
+    }
+  } catch (err) {
+    console.error(err.message);
+    return 1;
   }
-  console.error(`Unknown setup target: ${target}`);
-  console.error('Usage: unipet setup <hermes|openclaw|deepseek-tui|all>');
+
+  console.error(`Unknown connector command: ${subcommand}`);
+  console.error('Usage: unipet connector <list|status|setup|disable|remove>');
   return 1;
 }
 
@@ -667,6 +724,7 @@ Commands:
   unipet market <list|search|info|install>
   unipet pet <list|current|use|remove>
   unipet setup <hermes|openclaw|deepseek-tui|all>
+  unipet connector <list|status|setup|disable|remove>
 `);
 }
 
@@ -707,6 +765,10 @@ async function main() {
     }
     if (command === 'setup') {
       process.exitCode = await cmdSetup(args);
+      return;
+    }
+    if (command === 'connector') {
+      process.exitCode = await cmdConnector(args);
       return;
     }
     if (command === 'hook') {
