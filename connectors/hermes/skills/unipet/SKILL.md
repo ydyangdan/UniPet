@@ -56,25 +56,25 @@ If those concepts appear, map them to the five states above.
 When starting real work:
 
 ```bash
-unipet emit running "Hermes is working" --source hermes --label Hermes --ttl-ms 120000
+unipet emit running "Hermes is working" --source hermes --ttl-ms 120000
 ```
 
 When waiting for user input, approval, credentials, or clarification:
 
 ```bash
-unipet emit waiting "Waiting for user confirmation" --source hermes --label Hermes
+unipet emit waiting "Waiting for user confirmation" --source hermes
 ```
 
 When work is complete and ready for user review:
 
 ```bash
-unipet emit review "Done, please review" --source hermes --label Hermes --ttl-ms 300000
+unipet emit review "Done, please review" --source hermes --ttl-ms 300000
 ```
 
 When a command, build, test, network call, or integration step fails:
 
 ```bash
-unipet emit failed "Task failed: short reason" --source hermes --label Hermes --ttl-ms 300000
+unipet emit failed "Task failed: short reason" --source hermes --ttl-ms 300000
 ```
 
 When explicitly asked to reset the pet:

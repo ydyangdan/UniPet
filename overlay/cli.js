@@ -5,7 +5,6 @@ const http = require('http');
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
-const { PROTOCOL_VERSION } = require('./core');
 const market = require('./market');
 const pets = require('./pets');
 
@@ -350,12 +349,12 @@ async function cmdStatus() {
   console.log(`  websocket: ${runtime.ws_url || `ws://${runtime.host}:${runtime.ws_port}/ws`}`);
   console.log(`  runtime: ${currentHealth && currentHealth.runtime ? currentHealth.runtime : runtime.runtime || 'unknown'}`);
   if (currentHealth) console.log(`  uptime: ${Math.floor(currentHealth.uptime || 0)}s`);
-  if (view.current_pet) {
-    console.log(`  current pet: ${view.current_pet.id} (${view.current_pet.displayName || view.current_pet.id})`);
+  if (view.currentPet) {
+    console.log(`  current pet: ${view.currentPet.id} (${view.currentPet.displayName || view.currentPet.id})`);
   }
-  console.log(`  active state: ${view.active_state || 'idle'}`);
+  console.log(`  active state: ${view.activeState || 'idle'}`);
   for (const pet of view.pets || []) {
-    console.log(`  [${pet.source_id}] ${pet.state}: ${String(pet.message || '').slice(0, 60)}`);
+    console.log(`  [${pet.source}] ${pet.state}: ${String(pet.message || '').slice(0, 60)}`);
   }
   return 0;
 }
@@ -417,7 +416,7 @@ async function cmdEmit(args) {
   const [state, ...messageParts] = rest;
   const message = messageParts.join(' ');
   if (!state || !message) {
-    console.error('Usage: unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--label text] [--ttl-ms n]');
+    console.error('Usage: unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--ttl-ms n]');
     return 1;
   }
   const runtime = await ensureRunning();
@@ -426,17 +425,15 @@ async function cmdEmit(args) {
     return 1;
   }
   const payload = {
-    protocol: PROTOCOL_VERSION,
-    source_id: options.source || 'local-unipet',
-    label: options.label || options.source || 'UniPet',
+    source: options.source || 'local-unipet',
     state,
     message,
     action: 'update',
   };
-  if (options.ttlMs) payload.ttl_ms = Number.parseInt(options.ttlMs, 10);
+  if (options.ttlMs) payload.ttlMs = Number.parseInt(options.ttlMs, 10);
   const result = await requestJson('POST', runtime.port || DEFAULT_PORT, '/api/pet/events', payload, runtime.host || DEFAULT_HOST);
   console.log(`Emitted: ${state} - ${message}`);
-  console.log(`  active state -> ${result.active_state || '?'}`);
+  console.log(`  active state -> ${result.activeState || '?'}`);
   return 0;
 }
 
@@ -452,14 +449,12 @@ async function cmdClear() {
     return 1;
   }
   const result = await requestJson('POST', runtime.port || DEFAULT_PORT, '/api/pet/events', {
-    protocol: PROTOCOL_VERSION,
-    source_id: 'local-unipet',
-    label: 'UniPet',
+    source: 'local-unipet',
     state: 'idle',
     message: 'cleared',
     action: 'clear',
   }, runtime.host || DEFAULT_HOST);
-  console.log(`Cleared. active state -> ${result.active_state || '?'}`);
+  console.log(`Cleared. active state -> ${result.activeState || '?'}`);
   return 0;
 }
 
@@ -668,7 +663,7 @@ Commands:
   unipet doctor
   unipet stop
   unipet clear
-  unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--label text] [--ttl-ms n]
+  unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--ttl-ms n]
   unipet market <list|search|info|install>
   unipet pet <list|current|use|remove>
   unipet setup <hermes|openclaw|deepseek-tui|all>

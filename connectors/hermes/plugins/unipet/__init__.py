@@ -17,9 +17,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Optional
 
-PROTOCOL = "unipet.v1"
-SOURCE_ID = os.getenv("UNIPET_HERMES_SOURCE_ID", "hermes")
-LABEL = os.getenv("UNIPET_HERMES_LABEL", "Hermes")
+SOURCE = os.getenv("UNIPET_HERMES_SOURCE", "hermes")
 HOST = os.getenv("UNIPET_HOST", "127.0.0.1")
 AUTO_START = os.getenv("UNIPET_HERMES_AUTO_START", "1").lower() not in {
     "0",
@@ -64,20 +62,17 @@ def _event(
     message: str,
     *,
     action: str = "update",
-    ttl_ms: Optional[int] = None,
-    source_id: str = SOURCE_ID,
-    label: str = LABEL,
+    ttlMs: Optional[int] = None,
+    source: str = SOURCE,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
-        "protocol": PROTOCOL,
-        "source_id": source_id,
-        "label": label,
+        "source": source,
         "state": state,
         "message": _clip(message, state),
         "action": action,
     }
-    if ttl_ms is not None:
-        payload["ttl_ms"] = ttl_ms
+    if ttlMs is not None:
+        payload["ttlMs"] = ttlMs
     return payload
 
 
@@ -190,7 +185,7 @@ def _send(payload: dict[str, Any]) -> None:
 def _emit(payload: dict[str, Any]) -> None:
     global _last_signature, _last_sent_at
     signature = (
-        payload.get("source_id", ""),
+        payload.get("source", ""),
         payload.get("action", "update"),
         payload.get("state", ""),
         payload.get("message", ""),
@@ -205,43 +200,43 @@ def _emit(payload: dict[str, Any]) -> None:
 
 
 def _on_session_start(session_id: str = "", **_: Any) -> None:
-    _emit(_event("running", "Hermes session started", ttl_ms=120000))
+    _emit(_event("running", "Hermes session started", ttlMs=120000))
 
 
 def _on_pre_llm_call(**_: Any) -> None:
-    _emit(_event("running", "Hermes is thinking", ttl_ms=120000))
+    _emit(_event("running", "Hermes is thinking", ttlMs=120000))
 
 
 def _on_pre_tool_call(tool_name: str = "", **_: Any) -> None:
-    _emit(_event("running", f"Running {_short_tool_name(tool_name)}", ttl_ms=120000))
+    _emit(_event("running", f"Running {_short_tool_name(tool_name)}", ttlMs=120000))
 
 
 def _on_post_tool_call(tool_name: str = "", result: Any = None, **_: Any) -> None:
     if _is_error_result(result):
-        _emit(_event("failed", f"{_short_tool_name(tool_name)} failed", ttl_ms=300000))
+        _emit(_event("failed", f"{_short_tool_name(tool_name)} failed", ttlMs=300000))
 
 
 def _on_pre_approval_request(**_: Any) -> None:
-    _emit(_event("waiting", "Waiting for approval", ttl_ms=600000))
+    _emit(_event("waiting", "Waiting for approval", ttlMs=600000))
 
 
 def _on_post_approval_response(choice: str = "", **_: Any) -> None:
     normalized = str(choice or "").strip().lower()
     if normalized in {"deny", "timeout"}:
-        _emit(_event("failed", f"Approval {normalized or 'failed'}", ttl_ms=300000))
+        _emit(_event("failed", f"Approval {normalized or 'failed'}", ttlMs=300000))
     else:
-        _emit(_event("running", "Approval received", ttl_ms=120000))
+        _emit(_event("running", "Approval received", ttlMs=120000))
 
 
 def _on_post_llm_call(**_: Any) -> None:
-    _emit(_event("review", "Done, please review", ttl_ms=300000))
+    _emit(_event("review", "Done, please review", ttlMs=300000))
 
 
 def _on_session_end(completed: bool = True, interrupted: bool = False, **_: Any) -> None:
     if interrupted:
-        _emit(_event("waiting", "Hermes was interrupted", ttl_ms=300000))
+        _emit(_event("waiting", "Hermes was interrupted", ttlMs=300000))
     elif not completed:
-        _emit(_event("failed", "Hermes task did not complete", ttl_ms=300000))
+        _emit(_event("failed", "Hermes task did not complete", ttlMs=300000))
 
 
 def _remove_source(**_: Any) -> None:

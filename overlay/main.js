@@ -11,7 +11,7 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { PROTOCOL_VERSION, PetStore, normalizeEvent } = require('./core');
+const { PetStore, normalizeEvent } = require('./core');
 const { rendererPetConfig, setCurrentPet } = require('./pets');
 
 // Safe console for background mode (EPIPE guard)
@@ -157,11 +157,10 @@ function readRequestJson(req, callback) {
 
 function bridgeView() {
     return {
-        protocol: PROTOCOL_VERSION,
-        current_pet: rendererPetConfig(),
+        currentPet: rendererPetConfig(),
         pets: bridgeStore.snapshot(),
-        active_pet: bridgeStore.activePet(),
-        active_state: bridgeStore.activeState(),
+        activePet: bridgeStore.activePet(),
+        activeState: bridgeStore.activeState(),
     };
 }
 
@@ -208,10 +207,9 @@ function startBridge() {
                 status: 'ok',
                 pid: process.pid,
                 uptime: (Date.now() - startedAt) / 1000,
-                protocol: PROTOCOL_VERSION,
-                ws_url: WS_URL,
+                wsUrl: WS_URL,
                 runtime: 'node-electron',
-                current_pet: rendererPetConfig(),
+                currentPet: rendererPetConfig(),
             });
             return;
         }

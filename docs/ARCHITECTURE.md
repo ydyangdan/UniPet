@@ -22,8 +22,7 @@ overlay/main.js
   - render scale and window sizing
 
 overlay/core.js
-  - `unipet.v1` protocol
-  - event normalization
+  - bridge event normalization
   - Codex state aliases
   - TTL cleanup
   - active pet priority
@@ -80,7 +79,7 @@ failed
 review
 ```
 
-Aliases such as `thinking`, `planning`, `success`, and `error` are accepted by the protocol layer and normalized into the five states.
+Aliases such as `thinking`, `planning`, `success`, and `error` are accepted by the bridge and normalized into the five states.
 
 ## Event Flow
 
@@ -126,7 +125,7 @@ overlay/main.js bridge
 Manual or script path:
 
 ```text
-unipet emit running "Hermes is working" --source hermes --label Hermes
+unipet emit running "Hermes is working" --source hermes
         |
         v
 overlay/cli.js
@@ -140,7 +139,7 @@ Electron main process:
 
 ```text
 1. validates and normalizes the event
-2. stores it by source_id
+2. stores it by source
 3. computes active state by priority and recency
 4. broadcasts a WebSocket state_update
 5. forwards updates to the renderer through preload IPC

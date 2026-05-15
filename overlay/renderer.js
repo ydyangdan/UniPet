@@ -186,8 +186,8 @@ function init() {
     // Listen for pet events from main process
     if (window.unipetAPI) {
         window.unipetAPI.onPetEvent((event) => {
-            if (event.current_pet) anim.applyPetConfig(event.current_pet);
-            const pet = event.active_pet || (event.pets || [])[0];
+            if (event.currentPet) anim.applyPetConfig(event.currentPet);
+            const pet = event.activePet || (event.pets || [])[0];
             if (pet) {
                 anim.transition(pet.state, pet.message);
             } else {

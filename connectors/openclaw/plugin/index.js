@@ -1,6 +1,5 @@
 import http from 'node:http';
 
-const PROTOCOL = 'unipet.v1';
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 8768;
 const DEFAULT_TIMEOUT_MS = 350;
@@ -132,29 +131,25 @@ function sourceInfo(event, ctx, cfg) {
   const id = cfg.perAgent && agentId(event, ctx)
     ? `openclaw-${agentId(event, ctx)}`
     : 'openclaw';
-  const label = cfg.perAgent && agentId(event, ctx)
-    ? `OpenClaw ${agentId(event, ctx)}`
-    : 'OpenClaw';
   return {
-    source_id: cleanToken(id, 'openclaw'),
-    label: label.slice(0, 64),
+    source: cleanToken(id, 'openclaw'),
   };
 }
 
 function shouldEmit(payload) {
   const now = Date.now();
-  const key = `${payload.source_id}|${payload.action}|${payload.state}|${payload.message}|${payload.notification_kind || ''}`;
+  const key = `${payload.source}|${payload.action}|${payload.state}|${payload.message}`;
   if (key === lastEmitKey && now - lastEmitAt < DEDUPE_WINDOW_MS) return false;
   lastEmitKey = key;
   lastEmitAt = now;
   return true;
 }
 
-function clearCleanupTimer(sourceId) {
-  const timer = cleanupTimers.get(sourceId);
+function clearCleanupTimer(source) {
+  const timer = cleanupTimers.get(source);
   if (!timer) return;
   clearTimeout(timer);
-  cleanupTimers.delete(sourceId);
+  cleanupTimers.delete(source);
 }
 
 function postJson(cfg, payload) {
@@ -192,20 +187,14 @@ async function emit(api, event, ctx, state, message, options = {}) {
   if (!cfg.enabled) return;
 
   const payload = {
-    protocol: PROTOCOL,
     ...sourceInfo(event, ctx, cfg),
     state,
     message: message || state,
     action: options.action || 'update',
-    ttl_ms: options.ttlMs || 120000,
+    ttlMs: options.ttlMs || 120000,
   };
 
-  if (payload.action !== 'remove') clearCleanupTimer(payload.source_id);
-
-  if (options.notificationKind) {
-    payload.notification_kind = options.notificationKind;
-    payload.notification_count = options.notificationCount || 1;
-  }
+  if (payload.action !== 'remove') clearCleanupTimer(payload.source);
 
   if (!shouldEmit(payload)) return;
   await postJson(cfg, payload);
@@ -223,7 +212,7 @@ function safeEmit(api, event, ctx, state, message, options) {
 
 function removeSource(api, event, ctx, message = 'OpenClaw session ended') {
   const cfg = resolveConfig(api);
-  clearCleanupTimer(sourceInfo(event, ctx, cfg).source_id);
+  clearCleanupTimer(sourceInfo(event, ctx, cfg).source);
   safeEmit(api, event, ctx, 'idle', message, {
     action: 'remove',
     ttlMs: 1000,
@@ -234,13 +223,13 @@ function scheduleSourceRemoval(api, event, ctx) {
   const cfg = resolveConfig(api);
   if (!cfg.enabled) return;
   const source = sourceInfo(event, ctx, cfg);
-  clearCleanupTimer(source.source_id);
+  clearCleanupTimer(source.source);
   const timer = setTimeout(() => {
-    cleanupTimers.delete(source.source_id);
+    cleanupTimers.delete(source.source);
     removeSource(api, event, ctx, 'OpenClaw turn ended');
   }, cfg.idleDelayMs);
   if (typeof timer.unref === 'function') timer.unref();
-  cleanupTimers.set(source.source_id, timer);
+  cleanupTimers.set(source.source, timer);
 }
 
 function observe(api, hookName, handler) {
@@ -270,10 +259,7 @@ const plugin = {
   description: 'Mirrors OpenClaw conversation and agent lifecycle events to UniPet.',
   register(api) {
     observe(api, 'message_received', (event, ctx) => {
-      safeEmit(api, event, ctx, 'running', 'OpenClaw received a message', {
-        ttlMs: 120000,
-        notificationKind: 'message',
-      });
+      safeEmit(api, event, ctx, 'running', 'OpenClaw received a message', { ttlMs: 120000 });
     });
 
     observe(api, 'before_prompt_build', (event, ctx) => {

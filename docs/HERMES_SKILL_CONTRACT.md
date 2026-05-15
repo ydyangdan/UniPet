@@ -53,25 +53,25 @@ unipet start
 Send a running event:
 
 ```powershell
-unipet emit running "Processing task" --source hermes --label Hermes --ttl-ms 120000
+unipet emit running "Processing task" --source hermes --ttl-ms 120000
 ```
 
 Send a waiting event:
 
 ```powershell
-unipet emit waiting "Waiting for user confirmation" --source hermes --label Hermes
+unipet emit waiting "Waiting for user confirmation" --source hermes
 ```
 
 Send a finished/review event:
 
 ```powershell
-unipet emit review "Task complete, please review" --source hermes --label Hermes --ttl-ms 300000
+unipet emit review "Task complete, please review" --source hermes --ttl-ms 300000
 ```
 
 Send a failed event:
 
 ```powershell
-unipet emit failed "Task failed: short reason" --source hermes --label Hermes --ttl-ms 300000
+unipet emit failed "Task failed: short reason" --source hermes --ttl-ms 300000
 ```
 
 Reset state:
@@ -96,12 +96,10 @@ Hermes may use the CLI or HTTP. The plugin uses HTTP directly; the skill fallbac
 
 ```json
 {
-  "protocol": "unipet.v1",
-  "source_id": "hermes",
-  "label": "Hermes",
+  "source": "hermes",
   "state": "running",
   "message": "Processing task",
   "action": "update",
-  "ttl_ms": 120000
+  "ttlMs": 120000
 }
 ```

@@ -1,21 +1,20 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { buildEvent, isToolFailure, sourceId } = require('../hook');
+const { buildEvent, isToolFailure, source } = require('../hook');
 
 test('maps DeepSeek-TUI message submission to running state', () => {
   const event = buildEvent('message_submit', {
     DEEPSEEK_SESSION_ID: 'sess_abc',
   });
 
-  assert.equal(event.source_id, 'deepseek-tui');
-  assert.equal(event.label, 'DeepSeek-TUI');
+  assert.equal(event.source, 'deepseek-tui');
   assert.equal(event.state, 'running');
   assert.equal(event.message, 'DeepSeek-TUI is thinking');
-  assert.equal(event.ttl_ms, 120000);
+  assert.equal(event.ttlMs, 120000);
 });
 
 test('supports one UniPet source per DeepSeek-TUI session', () => {
-  assert.equal(sourceId({
+  assert.equal(source({
     UNIPET_DEEPSEEK_TUI_PER_SESSION: '1',
     DEEPSEEK_SESSION_ID: 'sess abc',
   }), 'deepseek-tui-sess-abc');
@@ -48,5 +47,5 @@ test('maps tool failures and errors', () => {
 test('maps session end to source removal', () => {
   const event = buildEvent('session_end', {});
   assert.equal(event.action, 'remove');
-  assert.equal(event.source_id, 'deepseek-tui');
+  assert.equal(event.source, 'deepseek-tui');
 });

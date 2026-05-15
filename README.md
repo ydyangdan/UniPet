@@ -116,8 +116,8 @@ unipet stop
 Send a manual test event:
 
 ```bash
-unipet emit running "Hermes is working" --source hermes --label Hermes --ttl-ms 120000
-unipet emit review "Ready for review" --source hermes --label Hermes --ttl-ms 300000
+unipet emit running "Hermes is working" --source hermes --ttl-ms 120000
+unipet emit review "Ready for review" --source hermes --ttl-ms 300000
 unipet clear
 ```
 

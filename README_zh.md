@@ -108,8 +108,8 @@ unipet stop
 手动发送测试事件：
 
 ```bash
-unipet emit running "Hermes 工作中" --source hermes --label Hermes --ttl-ms 120000
-unipet emit review "请检查结果" --source hermes --label Hermes --ttl-ms 300000
+unipet emit running "Hermes 工作中" --source hermes --ttl-ms 120000
+unipet emit review "请检查结果" --source hermes --ttl-ms 300000
 unipet clear
 ```
 

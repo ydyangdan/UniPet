@@ -2,13 +2,11 @@
 
 const http = require('http');
 const { spawnSync } = require('child_process');
-const { PROTOCOL_VERSION } = require('../../overlay/core');
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 8768;
 const DEFAULT_TIMEOUT_MS = 350;
-const DEFAULT_SOURCE_ID = 'deepseek-tui';
-const DEFAULT_LABEL = 'DeepSeek-TUI';
+const DEFAULT_SOURCE = 'deepseek-tui';
 
 function envBool(value, fallback = false) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -32,28 +30,22 @@ function clip(value, fallback, maxLen = 160) {
   return (text || fallback).slice(0, maxLen);
 }
 
-function sourceId(env = process.env) {
-  const configured = env.UNIPET_DEEPSEEK_TUI_SOURCE_ID;
-  if (configured) return cleanToken(configured, DEFAULT_SOURCE_ID);
+function source(env = process.env) {
+  const configured = env.UNIPET_DEEPSEEK_TUI_SOURCE;
+  if (configured) return cleanToken(configured, DEFAULT_SOURCE);
   if (envBool(env.UNIPET_DEEPSEEK_TUI_PER_SESSION, false) && env.DEEPSEEK_SESSION_ID) {
-    return cleanToken(`deepseek-tui-${env.DEEPSEEK_SESSION_ID}`, DEFAULT_SOURCE_ID);
+    return cleanToken(`deepseek-tui-${env.DEEPSEEK_SESSION_ID}`, DEFAULT_SOURCE);
   }
-  return DEFAULT_SOURCE_ID;
-}
-
-function label(env = process.env) {
-  return clip(env.UNIPET_DEEPSEEK_TUI_LABEL, DEFAULT_LABEL, 64);
+  return DEFAULT_SOURCE;
 }
 
 function baseEvent(env, state, message, options = {}) {
   return {
-    protocol: PROTOCOL_VERSION,
-    source_id: sourceId(env),
-    label: label(env),
+    source: source(env),
     state,
     message: clip(message, state, 180),
     action: options.action || 'update',
-    ttl_ms: options.ttlMs,
+    ttlMs: options.ttlMs,
   };
 }
 
@@ -179,5 +171,5 @@ module.exports = {
   isToolFailure,
   main,
   sendHookEvent,
-  sourceId,
+  source,
 };
