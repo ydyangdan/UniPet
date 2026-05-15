@@ -31,6 +31,8 @@ body:active {
     height: var(--pet-height);
     margin: 58px auto 0;
     -webkit-app-region: no-drag;
+    transform-origin: 50% 100%;
+    will-change: transform;
 }
 
 #pet-sprite {
@@ -43,6 +45,60 @@ body:active {
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
     -webkit-app-region: no-drag;
+    transition: filter 0.18s ease;
+}
+
+#pet-container.motion-idle {
+    animation: pet-breathe 3.2s ease-in-out infinite;
+}
+
+#pet-container.motion-work {
+    animation: pet-work-bob 0.56s ease-in-out infinite;
+}
+
+#pet-container.motion-scan {
+    animation: pet-scan-bob 0.9s ease-in-out infinite;
+}
+
+#pet-container.motion-think {
+    animation: pet-think-sway 1.8s ease-in-out infinite;
+}
+
+#pet-container.motion-wait {
+    animation: pet-wait-breathe 4.2s ease-in-out infinite;
+}
+
+#pet-container.effect-bounce {
+    animation: pet-bounce 0.72s cubic-bezier(0.2, 0.9, 0.2, 1) 1 !important;
+}
+
+#pet-container.effect-shake {
+    animation: pet-shake 0.42s ease-in-out 1 !important;
+}
+
+#pet-container.effect-settle {
+    animation: pet-settle 0.7s ease-out 1 !important;
+}
+
+#pet-container.effect-blink #pet-sprite {
+    animation: pet-blink 0.42s ease-in-out 1;
+}
+
+#pet-container.is-dragging {
+    animation: none !important;
+    transform: translateY(2px) scale(0.94);
+}
+
+#pet-container.emotion-happy #pet-sprite {
+    filter: drop-shadow(0 2px 3px rgba(255, 221, 87, 0.45));
+}
+
+#pet-container.emotion-frustrated #pet-sprite {
+    filter: drop-shadow(0 2px 3px rgba(255, 73, 73, 0.45)) saturate(1.2);
+}
+
+#pet-container.emotion-focused #pet-sprite {
+    filter: drop-shadow(0 2px 3px rgba(73, 166, 255, 0.28));
 }
 
 #pet-bubble {
@@ -81,5 +137,56 @@ body:active {
     color: rgba(255, 255, 255, 0.3);
     font-family: "Segoe UI", sans-serif;
     font-size: 9px;
+}
+
+@keyframes pet-breathe {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-1px) scale(1.015, 0.995); }
+}
+
+@keyframes pet-work-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+@keyframes pet-scan-bob {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    35% { transform: translateX(-2px) translateY(-1px); }
+    70% { transform: translateX(2px) translateY(-1px); }
+}
+
+@keyframes pet-think-sway {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    50% { transform: translateX(1px) rotate(-1deg); }
+}
+
+@keyframes pet-wait-breathe {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(1px) scale(0.99, 1.01); }
+}
+
+@keyframes pet-bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    28% { transform: translateY(-10px) scale(0.98, 1.05); }
+    58% { transform: translateY(2px) scale(1.04, 0.96); }
+}
+
+@keyframes pet-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+}
+
+@keyframes pet-settle {
+    0% { transform: translateY(-4px) scale(1.02, 0.98); }
+    45% { transform: translateY(2px) scale(0.98, 1.03); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes pet-blink {
+    0%, 100% { transform: scaleY(1); }
+    45%, 55% { transform: scaleY(0.82); }
 }
 
