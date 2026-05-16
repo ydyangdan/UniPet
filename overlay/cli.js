@@ -53,7 +53,8 @@ function processExists(pid) {
   try {
     process.kill(pid, 0);
     return true;
-  } catch (_) {
+  } catch (err) {
+    if (err && err.code === 'EPERM') return true;
     return false;
   }
 }
