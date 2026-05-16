@@ -22,18 +22,37 @@ overlay/main.js
   - render scale and window sizing
 
 overlay/core.js
-  - bridge event normalization
-  - Codex state aliases
   - TTL cleanup
   - active pet priority
+  - no renderer or connector knowledge
+
+overlay/protocol.js
+  - bridge event contract
+  - protocol version
+  - canonical Codex states
+  - action and source normalization
+  - state aliases
+
+overlay/life/interpreter.js
+  - reads bridge facts: state plus message
+  - derives local life signals: kind, mood, attention, urgency, energy delta
+  - clips bubble text by Unicode code points
+
+overlay/life/planner.js
+  - keeps short-lived pet life state
+  - turns life signals into renderer-agnostic behavior intents
+  - plans quiet idle moments such as blink, look, or hop
 
 overlay/renderer.js
-  - Codex spritesheet animation
-  - scaled atlas rendering
   - runtime spritesheet switching
   - bubble text
   - hover/click jumping
   - drag-to-position
+
+overlay/renderers/spritesheet/adapter.js
+  - Codex spritesheet animation rows
+  - scaled atlas rendering
+  - frame position calculation
 
 overlay/pets.js
   - local pet library under ~/.unipet/pets
@@ -81,7 +100,31 @@ review
 
 Aliases such as `thinking`, `planning`, `success`, and `error` are accepted by the bridge and normalized into the five states.
 
+The canonical HTTP event contract is documented in `docs/PROTOCOL.md` and
+implemented in `overlay/protocol.js`.
+
 ## Event Flow
+
+Layered runtime flow:
+
+```text
+Connector event
+    |
+    v
+Bridge Protocol
+    |
+    v
+PetStore
+    |
+    v
+Life Engine
+    |
+    v
+Behavior Intent
+    |
+    v
+Spritesheet Renderer
+```
 
 Automatic Hermes path:
 
@@ -149,11 +192,31 @@ Renderer:
 
 ```text
 1. receives the active state
-2. selects the spritesheet row
-3. scales a 192 x 208 atlas cell to the configured display size
-4. updates CSS background-position
-5. shows animation and bubble text
+2. asks the Life Engine for a behavior intent
+3. maps that intent through the spritesheet adapter
+4. scales a 192 x 208 atlas cell to the configured display size
+5. updates CSS background-position and CSS motion classes
+6. shows animation and bubble text
 ```
+
+## Life Engine
+
+The Life Engine is intentionally local. Connectors do not send animation,
+emotion, direction, or visual effects. They only send the bridge protocol. The
+renderer then interprets the active event and adds personality:
+
+```text
+running + "exec_shell npm test"     -> focused work motion
+running + "read_file package.json"  -> scan motion
+running + "apply_patch renderer.js" -> work motion facing the write row
+failed  + "timeout"                -> frustrated alert motion
+review  + "tests pass"             -> happy bounce
+idle                               -> calm breathing plus rare idle moments
+```
+
+The pet keeps only short-lived life state, such as mood, energy, and attention.
+It does not store memory or make agent decisions; those remain the job of the
+connected AI agent.
 
 ## Pet Asset Flow
 

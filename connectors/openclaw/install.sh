@@ -10,15 +10,47 @@ COPY=0
 OPENCLAW_COMMAND="${OPENCLAW_COMMAND:-openclaw}"
 UNIPET_COMMAND="${UNIPET_COMMAND:-unipet}"
 
-for arg in "$@"; do
-  case "$arg" in
-    --no-start) NO_START=1 ;;
-    --no-enable) NO_ENABLE=1 ;;
-    --skip-validate) SKIP_VALIDATE=1 ;;
-    --copy) COPY=1 ;;
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --no-start)
+      NO_START=1
+      shift
+      ;;
+    --no-enable)
+      NO_ENABLE=1
+      shift
+      ;;
+    --skip-validate)
+      SKIP_VALIDATE=1
+      shift
+      ;;
+    --copy)
+      COPY=1
+      shift
+      ;;
+    --openclaw-command)
+      if [ -z "${2:-}" ]; then
+        echo "Missing value for --openclaw-command" >&2
+        exit 1
+      fi
+      OPENCLAW_COMMAND="${2:-openclaw}"
+      shift 2
+      ;;
+    --unipet-command)
+      if [ -z "${2:-}" ]; then
+        echo "Missing value for --unipet-command" >&2
+        exit 1
+      fi
+      UNIPET_COMMAND="${2:-unipet}"
+      shift 2
+      ;;
+    -h|--help)
+      echo "Usage: ./connectors/openclaw/install.sh [--no-start] [--no-enable] [--skip-validate] [--copy] [--openclaw-command cmd] [--unipet-command cmd]"
+      exit 0
+      ;;
     *)
-      echo "Unknown option: $arg" >&2
-      echo "Usage: ./connectors/openclaw/install.sh [--no-start] [--no-enable] [--skip-validate] [--copy]" >&2
+      echo "Unknown option: $1" >&2
+      echo "Usage: ./connectors/openclaw/install.sh [--no-start] [--no-enable] [--skip-validate] [--copy] [--openclaw-command cmd] [--unipet-command cmd]" >&2
       exit 1
       ;;
   esac

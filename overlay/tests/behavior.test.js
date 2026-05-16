@@ -1,10 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { clipBubbleText, inferBehavior } = require('../behavior');
+const { clipBubbleText, createLifeState, inferBehavior, nextIdleMoment } = require('../behavior');
 
 test('clips bubble text by unicode code points', () => {
-  assert.equal(clipBubbleText('一二三四五六七八九十一二三四五六七八九十甲乙'), '一二三四五六七八九十一二三四五六七八九十...');
+  const text = '\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u7532\u4e59\u4e19\u4e01\u620a\u5df1\u5e9a\u8f9b\u58ec\u7678\u5b50\u4e11';
+  assert.equal(clipBubbleText(text), '\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u7532\u4e59\u4e19\u4e01\u620a\u5df1\u5e9a\u8f9b\u58ec\u7678...');
 });
 
 test('infers read and write behaviors from messages', () => {
@@ -26,11 +27,27 @@ test('infers shell, thinking, success, and failure behavior', () => {
   assert.equal(inferBehavior({ state: 'review', message: 'done with error' }).emotion, 'frustrated');
 });
 
+test('keeps short lived life state outside the bridge protocol', () => {
+  const life = createLifeState({ energy: 40 });
+  const intent = inferBehavior({ state: 'running', message: 'exec_shell npm test' }, life);
+
+  assert.equal(intent.life.energy > life.energy, true);
+  assert.equal(intent.life.attention, 'agent');
+  assert.equal(Object.hasOwn(intent, 'source'), false);
+});
+
 test('does not require bridge protocol fields beyond state and message', () => {
   const intent = inferBehavior({ state: 'waiting', message: 'waiting for user input' });
   assert.equal(intent.animation, 'waiting');
   assert.equal(intent.fallbackAnimation, 'waiting');
   assert.equal(Object.hasOwn(intent, 'source'), false);
+});
+
+test('plans quiet idle moments most of the time', () => {
+  assert.equal(nextIdleMoment(() => 0.10).type, 'none');
+  assert.equal(nextIdleMoment(() => 0.75).type, 'blink');
+  assert.equal(nextIdleMoment(() => 0.90).type, 'look');
+  assert.equal(nextIdleMoment(() => 0.99).type, 'hop');
 });
 
 function pick(intent) {

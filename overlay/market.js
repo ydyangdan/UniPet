@@ -85,6 +85,10 @@ function normalizeMarketPet(payload) {
 function requestBuffer(url, { maxBytes = MAX_DOWNLOAD_BYTES, redirects = 3 } = {}) {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      reject(new Error(`unsupported URL protocol: ${parsed.protocol}`));
+      return;
+    }
     const client = parsed.protocol === 'http:' ? http : https;
     const req = client.request(parsed, {
       headers: { 'User-Agent': USER_AGENT },
@@ -119,6 +123,7 @@ function requestBuffer(url, { maxBytes = MAX_DOWNLOAD_BYTES, redirects = 3 } = {
         }
         chunks.push(chunk);
       });
+      res.on('error', reject);
       res.on('end', () => resolve(Buffer.concat(chunks)));
     });
     req.on('timeout', () => req.destroy(new Error('request timed out')));

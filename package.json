@@ -45,6 +45,8 @@
     "overlay/*.js",
     "overlay/*.html",
     "overlay/*.css",
+    "overlay/life/**",
+    "overlay/renderers/**",
     "overlay/assets/**",
     "connectors/hermes/install.ps1",
     "connectors/hermes/install.sh",

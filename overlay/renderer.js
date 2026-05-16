@@ -5,26 +5,16 @@
  * Receives state updates from the bridge via WebSocket and IPC.
  */
 
-// ---- Codex spritesheet animation config ----
-const ANIMATION_ROWS = {
-    idle:          { row: 0, frames: 6, fps: 6,  loop: true },
-    running:       { row: 7, frames: 6, fps: 10, loop: true },
-    running_right: { row: 1, frames: 8, fps: 10, loop: true },
-    running_left:  { row: 2, frames: 8, fps: 10, loop: true },
-    waving:        { row: 3, frames: 4, fps: 8,  loop: false, fallback: 'idle' },
-    jumping:       { row: 4, frames: 5, fps: 8,  loop: false, fallback: 'idle' },
-    failed:        { row: 5, frames: 8, fps: 6,  loop: true },
-    waiting:       { row: 6, frames: 6, fps: 6,  loop: true },
-    review:        { row: 8, frames: 6, fps: 6,  loop: true },
+// ---- Codex spritesheet adapter ----
+const spritesheet = window.UnipetSpritesheetAdapter || {
+    readRenderScale: () => 0.5,
+    displaySize: () => ({ width: 96, height: 104 }),
+    backgroundSize: () => ({ width: 768, height: 936 }),
+    getAnimation: () => ({ row: 0, frames: 6, fps: 6, loop: true }),
+    framePosition: (stateName, frame) => `-${Math.max(0, frame || 0) * 96}px 0`,
 };
-
-const CELL_W = 192;
-const CELL_H = 208;
-const SHEET_COLUMNS = 8;
-const SHEET_ROWS = 9;
-const RENDER_SCALE = readRenderScale();
-const DISPLAY_W = Math.round(CELL_W * RENDER_SCALE);
-const DISPLAY_H = Math.round(CELL_H * RENDER_SCALE);
+const RENDER_SCALE = spritesheet.readRenderScale(new URLSearchParams(window.location.search).get('scale'));
+const DISPLAY_SIZE = spritesheet.displaySize(RENDER_SCALE);
 
 // ---- DOM refs ----
 const containerEl = document.getElementById('pet-container');
@@ -43,18 +33,12 @@ const behavior = window.UnipetBehavior || {
     clipBubbleText: (text) => String(text || '').slice(0, 20),
 };
 
-function readRenderScale() {
-    const params = new URLSearchParams(window.location.search);
-    const parsed = Number.parseFloat(params.get('scale') || '0.5');
-    if (!Number.isFinite(parsed)) return 0.5;
-    return Math.min(1, Math.max(0.35, parsed));
-}
-
 function configureSpriteSize() {
     const root = document.documentElement;
-    root.style.setProperty('--pet-width', `${DISPLAY_W}px`);
-    root.style.setProperty('--pet-height', `${DISPLAY_H}px`);
-    spriteEl.style.backgroundSize = `${DISPLAY_W * SHEET_COLUMNS}px ${DISPLAY_H * SHEET_ROWS}px`;
+    const bg = spritesheet.backgroundSize(RENDER_SCALE);
+    root.style.setProperty('--pet-width', `${DISPLAY_SIZE.width}px`);
+    root.style.setProperty('--pet-height', `${DISPLAY_SIZE.height}px`);
+    spriteEl.style.backgroundSize = `${bg.width}px ${bg.height}px`;
 }
 
 // ---- Small motion layer: CSS classes, transient effects, idle life ----
@@ -90,13 +74,16 @@ const motion = {
             return;
         }
 
-        const roll = Math.random();
-        if (roll < 0.15) {
-            this.trigger('blink', 450);
-        } else if (roll < 0.25) {
-            anim.playTemporary('running_left', 900, 8);
-        } else if (roll < 0.30) {
-            anim.playPreview('jumping');
+        const moment = behavior.nextIdleMoment
+            ? behavior.nextIdleMoment()
+            : { type: 'none' };
+        if (moment.effect) {
+            this.trigger(moment.effect, moment.durationMs || 450);
+        }
+        if (moment.type === 'look') {
+            anim.playTemporary(moment.animation || 'running_left', moment.durationMs || 900, moment.fps || 8);
+        } else if (moment.type === 'hop') {
+            anim.playPreview(moment.animation || 'jumping');
         }
         this.scheduleIdle();
     },
@@ -128,6 +115,7 @@ const anim = {
     settleTimer: null,
     spritesheetUrl: 'assets/default/spritesheet.webp',
     petId: 'pounce',
+    lifeState: behavior.createLifeState ? behavior.createLifeState() : null,
     bubbleTimer: null,
     lastBubbleText: '',
     lastBubbleAt: 0,
@@ -149,12 +137,14 @@ const anim = {
 
     /** Get animation config for a state name. */
     getConfig(stateName) {
-        return ANIMATION_ROWS[stateName] || ANIMATION_ROWS.idle;
+        return spritesheet.getAnimation(stateName);
     },
 
     /** Transition from a bridge state/message into a local behavior intent. */
     transition(stateName, message) {
-        this.transitionIntent(behavior.inferBehavior({ state: stateName, message }));
+        const intent = behavior.inferBehavior({ state: stateName, message }, this.lifeState);
+        if (intent.life) this.lifeState = intent.life;
+        this.transitionIntent(intent);
     },
 
     transitionIntent(intent) {
@@ -200,11 +190,11 @@ const anim = {
 
     /** Render current frame via CSS background-position. */
     renderFrame() {
-
-        const cfg = this.getConfig(this.currentState);
-        const x = this.currentFrame * DISPLAY_W;
-        const y = cfg.row * DISPLAY_H;
-        spriteEl.style.backgroundPosition = `-${x}px -${y}px`;
+        spriteEl.style.backgroundPosition = spritesheet.framePosition(
+            this.currentState,
+            this.currentFrame,
+            RENDER_SCALE,
+        );
     },
 
     /** Start looping animation at given FPS. */

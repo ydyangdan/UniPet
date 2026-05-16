@@ -4,6 +4,33 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 OVERLAY_DIR="$PROJECT_ROOT/overlay"
+NO_START=0
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --no-start)
+      NO_START=1
+      shift
+      ;;
+    --hermes-home)
+      if [ -z "${2:-}" ]; then
+        echo "Missing value for --hermes-home" >&2
+        exit 1
+      fi
+      HERMES_HOME="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      echo "Usage: ./connectors/hermes/install.sh [--no-start] [--hermes-home path]"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo "Usage: ./connectors/hermes/install.sh [--no-start] [--hermes-home path]" >&2
+      exit 1
+      ;;
+  esac
+done
 
 resolve_hermes_home_from_command() {
   local cmd_path
@@ -65,7 +92,7 @@ else
   echo "Warning: hermes command not found. Plugin was copied but not auto-enabled." >&2
 fi
 
-if [ "${1:-}" != "--no-start" ]; then
+if [ "$NO_START" -eq 0 ]; then
   unipet start
 fi
 

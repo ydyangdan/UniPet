@@ -127,6 +127,7 @@ function requestJson(method, port, pathname, payload = null, host = DEFAULT_HOST
       let raw = '';
       res.setEncoding('utf8');
       res.on('data', (chunk) => { raw += chunk; });
+      res.on('error', reject);
       res.on('end', () => {
         try {
           const data = raw ? JSON.parse(raw) : {};
@@ -223,6 +224,7 @@ function runHermesSetup(options) {
   const scriptPath = ensureSetupScript('hermes', 'sh');
   const args = [scriptPath];
   if (!options.start) args.push('--no-start');
+  if (options.hermesHome) args.push('--hermes-home', options.hermesHome);
   return runInherited('bash', args);
 }
 
@@ -245,6 +247,8 @@ function runOpenClawSetup(options) {
   if (options.noEnable) args.push('--no-enable');
   if (options.skipValidate) args.push('--skip-validate');
   if (options.copy) args.push('--copy');
+  if (options.openclawCommand) args.push('--openclaw-command', options.openclawCommand);
+  if (options.unipetCommand) args.push('--unipet-command', options.unipetCommand);
   return runInherited('bash', args);
 }
 

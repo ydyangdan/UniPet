@@ -35,6 +35,18 @@ body:active {
     will-change: transform;
 }
 
+#pet-container::after {
+    content: "";
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+}
+
 #pet-sprite {
     width: var(--pet-width);
     height: var(--pet-height);
@@ -68,6 +80,10 @@ body:active {
     animation: pet-wait-breathe 4.2s ease-in-out infinite;
 }
 
+#pet-container.motion-alert {
+    animation: pet-alert-pulse 0.66s ease-in-out infinite;
+}
+
 #pet-container.effect-bounce {
     animation: pet-bounce 0.72s cubic-bezier(0.2, 0.9, 0.2, 1) 1 !important;
 }
@@ -93,12 +109,29 @@ body:active {
     filter: drop-shadow(0 2px 3px rgba(255, 221, 87, 0.45));
 }
 
+#pet-container.emotion-happy::after,
+#pet-container.emotion-excited::after {
+    background: rgba(255, 235, 130, 0.95);
+    box-shadow:
+        -12px 5px 0 rgba(255, 235, 130, 0.75),
+        6px 13px 0 rgba(255, 255, 255, 0.8);
+    animation: pet-spark 0.82s ease-out 1;
+}
+
 #pet-container.emotion-frustrated #pet-sprite {
     filter: drop-shadow(0 2px 3px rgba(255, 73, 73, 0.45)) saturate(1.2);
 }
 
 #pet-container.emotion-focused #pet-sprite {
     filter: drop-shadow(0 2px 3px rgba(73, 166, 255, 0.28));
+}
+
+#pet-container.emotion-curious #pet-sprite {
+    filter: drop-shadow(0 2px 3px rgba(87, 227, 180, 0.28));
+}
+
+#pet-container.emotion-excited #pet-sprite {
+    filter: drop-shadow(0 3px 5px rgba(255, 221, 87, 0.5)) saturate(1.12);
 }
 
 #pet-bubble {
@@ -165,6 +198,11 @@ body:active {
     50% { transform: translateY(1px) scale(0.99, 1.01); }
 }
 
+@keyframes pet-alert-pulse {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-1px) rotate(-1deg); }
+}
+
 @keyframes pet-bounce {
     0%, 100% { transform: translateY(0) scale(1); }
     28% { transform: translateY(-10px) scale(0.98, 1.05); }
@@ -188,5 +226,11 @@ body:active {
 @keyframes pet-blink {
     0%, 100% { transform: scaleY(1); }
     45%, 55% { transform: scaleY(0.82); }
+}
+
+@keyframes pet-spark {
+    0% { opacity: 0; transform: translateY(4px) scale(0.7); }
+    35% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-11px) scale(1.05); }
 }
 
