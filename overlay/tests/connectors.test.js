@@ -7,7 +7,7 @@ const test = require('node:test');
 const connectors = require('../connectors');
 
 test('expands connector targets and rejects unknown ids', () => {
-  assert.deepEqual(connectors.connectorIds('all'), ['hermes', 'openclaw', 'deepseek-tui']);
+  assert.deepEqual(connectors.connectorIds('all'), ['hermes', 'openclaw', 'deepseek-tui', 'codex', 'claude-code']);
   assert.deepEqual(connectors.connectorIds('hermes'), ['hermes']);
   assert.throws(() => connectors.connectorIds('deepseek'), /Unknown connector/);
 });
@@ -41,4 +41,9 @@ test('detects current and legacy DeepSeek-TUI managed blocks', () => {
   assert.equal(connectors.hasDeepSeekManagedBlock('# >>> unipet deepseek-tui hooks\nx\n# <<< unipet deepseek-tui hooks'), true);
   assert.equal(connectors.hasDeepSeekManagedBlock('# >>> unipet deepseek hooks\nx\n# <<< unipet deepseek hooks'), true);
   assert.equal(connectors.hasDeepSeekManagedBlock('provider = "deepseek"'), false);
+});
+
+test('detects Codex managed hook blocks', () => {
+  assert.equal(connectors.hasCodexManagedBlock('# >>> unipet codex hooks\nx\n# <<< unipet codex hooks'), true);
+  assert.equal(connectors.hasCodexManagedBlock('model = "gpt-5"'), false);
 });

@@ -270,16 +270,58 @@ function runDeepSeekTuiSetup(options) {
   return runInherited('bash', args);
 }
 
+function runCodexSetup(options) {
+  console.log('Setting up UniPet Codex connector...');
+  if (process.platform === 'win32') {
+    const scriptPath = ensureSetupScript('codex', 'ps1');
+    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath];
+    if (!options.start) args.push('-NoStart');
+    if (options.codexConfig || options.config) args.push('-ConfigPath', options.codexConfig || options.config);
+    if (options.unipetCommand) args.push('-UnipetCommand', options.unipetCommand);
+    return runInherited('powershell.exe', args);
+  }
+  const scriptPath = ensureSetupScript('codex', 'sh');
+  const args = [scriptPath];
+  if (!options.start) args.push('--no-start');
+  if (options.codexConfig || options.config) args.push('--config', options.codexConfig || options.config);
+  if (options.unipetCommand) args.push('--unipet-command', options.unipetCommand);
+  return runInherited('bash', args);
+}
+
+function runClaudeCodeSetup(options) {
+  console.log('Setting up UniPet Claude Code connector...');
+  if (process.platform === 'win32') {
+    const scriptPath = ensureSetupScript('claude-code', 'ps1');
+    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath];
+    if (!options.start) args.push('-NoStart');
+    if (options.claudeSettings || options.settings) args.push('-SettingsPath', options.claudeSettings || options.settings);
+    if (options.unipetCommand) args.push('-UnipetCommand', options.unipetCommand);
+    return runInherited('powershell.exe', args);
+  }
+  const scriptPath = ensureSetupScript('claude-code', 'sh');
+  const args = [scriptPath];
+  if (!options.start) args.push('--no-start');
+  if (options.claudeSettings || options.settings) args.push('--settings', options.claudeSettings || options.settings);
+  if (options.unipetCommand) args.push('--unipet-command', options.unipetCommand);
+  return runInherited('bash', args);
+}
+
 function setupConnectorTarget(target, options) {
   if (target === 'hermes') return runHermesSetup(options);
   if (target === 'openclaw') return runOpenClawSetup(options);
   if (target === 'deepseek-tui') return runDeepSeekTuiSetup(options);
+  if (target === 'codex') return runCodexSetup(options);
+  if (target === 'claude-code') return runClaudeCodeSetup(options);
   if (target === 'all') {
     const hermesCode = runHermesSetup(options);
     if (hermesCode !== 0) return hermesCode;
     const openClawCode = runOpenClawSetup(options);
     if (openClawCode !== 0) return openClawCode;
-    return runDeepSeekTuiSetup(options);
+    const deepSeekCode = runDeepSeekTuiSetup(options);
+    if (deepSeekCode !== 0) return deepSeekCode;
+    const codexCode = runCodexSetup(options);
+    if (codexCode !== 0) return codexCode;
+    return runClaudeCodeSetup(options);
   }
   throw new Error(`Unknown connector: ${target}`);
 }
@@ -629,24 +671,34 @@ async function cmdMarket(args) {
   return 1;
 }
 
+function setupUsage() {
+  return `Usage:
+  unipet setup hermes [--start] [--hermes-home path]
+  unipet setup openclaw [--start] [--copy] [--no-enable] [--skip-validate]
+  unipet setup deepseek-tui [--start] [--config path]
+  unipet setup codex [--start] [--config path]
+  unipet setup claude-code [--start] [--settings path]
+  unipet setup all [--start]
+`;
+}
+
 async function cmdSetup(args) {
   const { options, rest } = parseOptions(args);
   const [target] = rest;
   const wantsHelp = options.help || rest.includes('--help') || rest.includes('-h');
-  if (!target || target === 'help' || wantsHelp) {
-    console.log(`Usage:
-  unipet setup hermes [--start] [--hermes-home path]
-  unipet setup openclaw [--start] [--copy] [--no-enable] [--skip-validate]
-  unipet setup deepseek-tui [--start] [--config path]
-  unipet setup all [--start]
-`);
-    return target ? 0 : 1;
+  if (target === 'help' || wantsHelp) {
+    console.log(setupUsage());
+    return 0;
+  }
+  if (!target) {
+    console.log(setupUsage());
+    return 1;
   }
   try {
     return setupConnectorTarget(target, options);
   } catch (err) {
     console.error(err.message);
-    console.error('Usage: unipet setup <hermes|openclaw|deepseek-tui|all>');
+    console.error('Usage: unipet setup <hermes|openclaw|deepseek-tui|codex|claude-code|all>');
     return 1;
   }
 }
@@ -657,15 +709,17 @@ async function cmdConnector(args) {
   if (subcommand === 'help' || subcommand === '--help' || subcommand === '-h') {
     console.log(`Usage:
   unipet connector list
-  unipet connector status [hermes|openclaw|deepseek-tui|all]
-  unipet connector setup <hermes|openclaw|deepseek-tui|all>
-  unipet connector disable <hermes|openclaw|deepseek-tui|all>
-  unipet connector remove <hermes|openclaw|deepseek-tui|all>
+  unipet connector status [hermes|openclaw|deepseek-tui|codex|claude-code|all]
+  unipet connector setup <hermes|openclaw|deepseek-tui|codex|claude-code|all>
+  unipet connector disable <hermes|openclaw|deepseek-tui|codex|claude-code|all>
+  unipet connector remove <hermes|openclaw|deepseek-tui|codex|claude-code|all>
 
 Shortcuts:
   unipet setup hermes
   unipet setup openclaw
   unipet setup deepseek-tui
+  unipet setup codex
+  unipet setup claude-code
 `);
     return 0;
   }
@@ -706,12 +760,24 @@ Shortcuts:
 
 async function cmdHook(args) {
   const [target, ...rest] = args;
+  if (target === 'help' || target === '--help' || target === '-h') {
+    console.log('Usage: unipet hook <deepseek-tui|codex|claude-code> <event>');
+    return 0;
+  }
   if (target === 'deepseek-tui') {
     const deepseekTui = require('../connectors/deepseek-tui/hook');
     return deepseekTui.main(rest);
   }
+  if (target === 'codex') {
+    const codex = require('../connectors/codex/hook');
+    return codex.main(rest);
+  }
+  if (target === 'claude-code') {
+    const claudeCode = require('../connectors/claude-code/hook');
+    return claudeCode.main(rest);
+  }
   console.error(`Unknown hook target: ${target || ''}`);
-  console.error('Usage: unipet hook deepseek-tui <event>');
+  console.error('Usage: unipet hook <deepseek-tui|codex|claude-code> <event>');
   return 1;
 }
 
@@ -727,7 +793,7 @@ Commands:
   unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--ttl-ms n]
   unipet market <list|search|info|install>
   unipet pet <list|current|use|remove>
-  unipet setup <hermes|openclaw|deepseek-tui|all>
+  unipet setup <hermes|openclaw|deepseek-tui|codex|claude-code|all>
   unipet connector <list|status|setup|disable|remove>
 `);
 }

@@ -34,7 +34,7 @@
   },
   "scripts": {
     "start": "electron overlay",
-    "check": "npm --prefix overlay run check && node --test connectors/openclaw/plugin/tests/*.test.js && node --test connectors/deepseek-tui/tests/*.test.js",
+    "check": "npm --prefix overlay run check && node --test connectors/openclaw/plugin/tests/*.test.js && node --test connectors/deepseek-tui/tests/*.test.js && node --test connectors/codex/tests/*.test.js && node --test connectors/claude-code/tests/*.test.js",
     "test": "npm run check",
     "pack:dry": "npm pack --dry-run"
   },
@@ -61,6 +61,14 @@
     "connectors/deepseek-tui/install.ps1",
     "connectors/deepseek-tui/install.sh",
     "connectors/deepseek-tui/hook.js",
+    "connectors/codex/install.js",
+    "connectors/codex/install.ps1",
+    "connectors/codex/install.sh",
+    "connectors/codex/hook.js",
+    "connectors/claude-code/install.js",
+    "connectors/claude-code/install.ps1",
+    "connectors/claude-code/install.sh",
+    "connectors/claude-code/hook.js",
     "docs/**"
   ],
   "dependencies": {

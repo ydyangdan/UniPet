@@ -6,6 +6,8 @@ const { spawnSync } = require('child_process');
 const HERMES_ID = 'hermes';
 const OPENCLAW_ID = 'openclaw';
 const DEEPSEEK_TUI_ID = 'deepseek-tui';
+const CODEX_ID = 'codex';
+const CLAUDE_CODE_ID = 'claude-code';
 const OPENCLAW_PLUGIN_ID = 'unipet-openclaw';
 
 const CONNECTORS = [
@@ -23,6 +25,16 @@ const CONNECTORS = [
     id: DEEPSEEK_TUI_ID,
     label: 'DeepSeek-TUI',
     description: 'DeepSeek-TUI managed hooks block',
+  },
+  {
+    id: CODEX_ID,
+    label: 'Codex',
+    description: 'Codex lifecycle hooks',
+  },
+  {
+    id: CLAUDE_CODE_ID,
+    label: 'Claude Code',
+    description: 'Claude Code lifecycle hooks',
   },
 ];
 
@@ -190,14 +202,36 @@ function deepSeekInstallModule() {
   return require('../connectors/deepseek-tui/install');
 }
 
+function codexInstallModule() {
+  return require('../connectors/codex/install');
+}
+
+function claudeCodeInstallModule() {
+  return require('../connectors/claude-code/install');
+}
+
 function deepSeekConfigPath(options = {}) {
   const installer = deepSeekInstallModule();
   return path.resolve(options.config || installer.defaultConfigPath());
 }
 
+function codexConfigPath(options = {}) {
+  const installer = codexInstallModule();
+  return path.resolve(options.codexConfig || options.config || installer.defaultConfigPath());
+}
+
+function claudeCodeSettingsPath(options = {}) {
+  const installer = claudeCodeInstallModule();
+  return path.resolve(options.claudeSettings || options.settings || installer.defaultSettingsPath());
+}
+
 function hasDeepSeekManagedBlock(text) {
   return /# >>> unipet deepseek-tui hooks[\s\S]*?# <<< unipet deepseek-tui hooks/m.test(text)
     || /# >>> unipet deepseek hooks[\s\S]*?# <<< unipet deepseek hooks/m.test(text);
+}
+
+function hasCodexManagedBlock(text) {
+  return /# >>> unipet codex hooks[\s\S]*?# <<< unipet codex hooks/m.test(text);
 }
 
 function deepSeekTuiStatus(options = {}) {
@@ -218,10 +252,49 @@ function deepSeekTuiStatus(options = {}) {
   };
 }
 
+function codexStatus(options = {}) {
+  const configPath = codexConfigPath(options);
+  const exists = fs.existsSync(configPath);
+  const text = exists ? fs.readFileSync(configPath, 'utf8') : '';
+  const installed = exists && hasCodexManagedBlock(text);
+  return {
+    id: CODEX_ID,
+    label: 'Codex',
+    installed,
+    enabled: installed ? 'enabled' : 'no',
+    details: [
+      `config: ${configPath}`,
+      `config file: ${exists ? 'found' : 'missing'}`,
+      `managed hooks: ${installed ? 'found' : 'missing'}`,
+    ],
+  };
+}
+
+function claudeCodeStatus(options = {}) {
+  const settingsPath = claudeCodeSettingsPath(options);
+  const exists = fs.existsSync(settingsPath);
+  const text = exists ? fs.readFileSync(settingsPath, 'utf8') : '';
+  const installer = claudeCodeInstallModule();
+  const installed = exists && installer.hasManagedHooksText(text);
+  return {
+    id: CLAUDE_CODE_ID,
+    label: 'Claude Code',
+    installed,
+    enabled: installed ? 'enabled' : 'no',
+    details: [
+      `settings: ${settingsPath}`,
+      `settings file: ${exists ? 'found' : 'missing'}`,
+      `managed hooks: ${installed ? 'found' : 'missing'}`,
+    ],
+  };
+}
+
 function connectorStatus(id, options = {}) {
   if (id === HERMES_ID) return hermesStatus(options);
   if (id === OPENCLAW_ID) return openClawStatus(options);
   if (id === DEEPSEEK_TUI_ID) return deepSeekTuiStatus(options);
+  if (id === CODEX_ID) return codexStatus(options);
+  if (id === CLAUDE_CODE_ID) return claudeCodeStatus(options);
   throw new Error(`Unknown connector: ${id}`);
 }
 
@@ -326,6 +399,42 @@ function stripDeepSeekManagedHooks(options = {}, io = console, verb = 'Removed')
   return 0;
 }
 
+function stripCodexManagedHooks(options = {}, io = console, verb = 'Removed') {
+  const installer = codexInstallModule();
+  const configPath = codexConfigPath(options);
+  if (!fs.existsSync(configPath)) {
+    io.log(`Codex config not found: ${configPath}`);
+    return 0;
+  }
+  const before = fs.readFileSync(configPath, 'utf8');
+  const after = installer.stripManagedBlock(before);
+  if (after === before) {
+    io.log(`No UniPet Codex hooks found in ${configPath}`);
+    return 0;
+  }
+  fs.writeFileSync(configPath, `${after.trimEnd()}${after.trim() ? '\n' : ''}`);
+  io.log(`${verb} UniPet Codex hooks from ${configPath}`);
+  return 0;
+}
+
+function stripClaudeCodeManagedHooks(options = {}, io = console, verb = 'Removed') {
+  const installer = claudeCodeInstallModule();
+  const settingsPath = claudeCodeSettingsPath(options);
+  if (!fs.existsSync(settingsPath)) {
+    io.log(`Claude Code settings not found: ${settingsPath}`);
+    return 0;
+  }
+  const before = fs.readFileSync(settingsPath, 'utf8');
+  if (!installer.hasManagedHooksText(before)) {
+    io.log(`No UniPet Claude Code hooks found in ${settingsPath}`);
+    return 0;
+  }
+  const after = JSON.stringify(installer.stripManagedHooks(JSON.parse(before || '{}')), null, 2);
+  fs.writeFileSync(settingsPath, `${after}\n`);
+  io.log(`${verb} UniPet Claude Code hooks from ${settingsPath}`);
+  return 0;
+}
+
 function disableConnector(target, options = {}, io = console) {
   let exitCode = 0;
   for (const id of connectorIds(target)) {
@@ -333,6 +442,8 @@ function disableConnector(target, options = {}, io = console) {
     if (id === HERMES_ID) code = disableHermes(options, io);
     if (id === OPENCLAW_ID) code = disableOpenClaw(options, io);
     if (id === DEEPSEEK_TUI_ID) code = stripDeepSeekManagedHooks(options, io, 'Disabled');
+    if (id === CODEX_ID) code = stripCodexManagedHooks(options, io, 'Disabled');
+    if (id === CLAUDE_CODE_ID) code = stripClaudeCodeManagedHooks(options, io, 'Disabled');
     if (code !== 0) exitCode = code;
   }
   return exitCode;
@@ -345,6 +456,8 @@ function removeConnector(target, options = {}, io = console) {
     if (id === HERMES_ID) code = removeHermes(options, io);
     if (id === OPENCLAW_ID) code = removeOpenClaw(options, io);
     if (id === DEEPSEEK_TUI_ID) code = stripDeepSeekManagedHooks(options, io, 'Removed');
+    if (id === CODEX_ID) code = stripCodexManagedHooks(options, io, 'Removed');
+    if (id === CLAUDE_CODE_ID) code = stripClaudeCodeManagedHooks(options, io, 'Removed');
     if (code !== 0) exitCode = code;
   }
   return exitCode;
@@ -355,6 +468,7 @@ module.exports = {
   connectorIds,
   connectorList,
   connectorStatus,
+  hasCodexManagedBlock,
   disableConnector,
   formatStatus,
   hasDeepSeekManagedBlock,
