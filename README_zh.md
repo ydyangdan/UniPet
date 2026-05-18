@@ -1,62 +1,51 @@
 # UniPet
 
-UniPet 是一款面向 AI 编程助手的通用桌面宠物。灵感来源于 Codex Pet，
-它是一个轻量级、跨平台的 Node.js + Electron 悬浮窗，在本地运行并
-提供简单的 localhost 桥接服务，让 Hermes、OpenClaw、DeepSeek-TUI、
-shell 脚本或你自己的 AI agent 都能驱动宠物状态，无需修改它们的内核代码。
+[English README](README.md)
 
-![UniPet Hermes demo](docs/assets/unipet-hermes-demo.png)
+UniPet 是一款面向 AI 编程助手的通用桌面宠物。
 
-## 功能
+你可以把它理解成“通用版 Codex Pet”：让 Codex、Claude Code、Hermes、
+OpenClaw、DeepSeek-TUI、shell 脚本，甚至你自己的 Agent，都拥有一个能实时
+反应状态的桌面宠物。UniPet 使用轻量的 Node.js + Electron 本地悬浮窗，通过
+localhost 和零侵入 hooks 接入，不修改 Agent 源码，也尽量不增加额外依赖。
 
-- 显示一个透明、始终置顶的桌面宠物
-- 使用 Codex Pet 语义状态：`idle`、`running`、`waiting`、`failed`、`review`
-- 显示 agent 事件的简短气泡消息
-- 支持鼠标悬浮 / 点击跳跃动画，可拖拽移动
-- 安装、列出、切换、删除本地宠物
-- 从宠物市场下载 Codex 兼容的宠物
-- 通过可选的零侵入连接器集成 Hermes、OpenClaw 和 DeepSeek-TUI
+![UniPet demo](docs/assets/unipet-hermes-demo.png)
 
-UniPet 本身不需要 Python。Hermes 连接器里有一个微小的 Python 插件，
-仅仅是因为 Hermes 在自己的 Python 环境中加载插件；该插件只用了 Python
-标准库模块。
+```bash
+npm install -g uni-pet
+unipet start
+unipet setup codex
+```
 
-## 环境要求
+## 为什么用 UniPet
 
-- Node.js 18+
-- npm
-- 能运行 Electron 的桌面环境
+- 像 Codex Pet 一样展示桌面宠物，但不只服务于 Codex。
+- 支持 Codex、Claude Code、Hermes、OpenClaw、DeepSeek-TUI 和自定义 Agent。
+- 本地优先：只监听 localhost，事件留在本机。
+- 零侵入：通过 hook、plugin 或配置块接入，不修改上游 Agent 源码。
+- 轻量：Node.js + Electron，UniPet 本身不要求 Python。
+- 支持 Codex 兼容宠物市场，可以用命令安装、切换和删除宠物。
 
-平台说明：
+Hermes 连接器里有一个很小的 Python 插件，仅仅是因为 Hermes 会在自己的
+Python 环境中加载插件；该插件只使用 Python 标准库。
 
-- Windows 是主要测试平台
-- macOS 和 Linux 使用相同的 Node.js/Electron 运行时和 `install.sh`
-- WSL 需要 WSLg 或其他可用的 Linux GUI 显示
-- Hermes Agent、OpenClaw 和 DeepSeek-TUI 是可选的。仅当需要自动生命周期集成时才安装
+## 快速开始
 
-## 安装
-
-大多数用户从 npm 安装：
+大多数用户直接从 npm 安装：
 
 ```bash
 npm install -g uni-pet
 unipet start
 ```
 
-连接你使用的 agent：
+只连接你实际使用的 Agent：
 
 ```bash
+unipet setup codex
+unipet setup claude-code
 unipet setup hermes
 unipet setup openclaw
 unipet setup deepseek-tui
-```
-
-`setup` 命令作为日常快捷入口会继续保留。完整连接器生命周期管理可以使用：
-
-```bash
-unipet connector status
-unipet connector disable hermes
-unipet connector remove hermes
 ```
 
 后续更新：
@@ -65,42 +54,16 @@ unipet connector remove hermes
 npm update -g uni-pet
 ```
 
-从 GitHub 源码安装主要用于开发或尝鲜未发布的改动。
+## 支持的 Agent
 
-Windows PowerShell：
-
-```powershell
-git clone https://github.com/ydyangdan/UniPet.git
-cd UniPet
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
-
-Unix、macOS、Linux 或 WSL：
-
-```bash
-git clone https://github.com/ydyangdan/UniPet.git
-cd UniPet
-./install.sh
-```
-
-源码安装脚本会执行 `npm install`、link 全局 `unipet` 命令、
-默认安装 Hermes 连接器、启动 UniPet 并输出 `unipet doctor`。
-
-如果只需要桌面宠物运行时，不需要 Hermes 相关文件：
-
-```powershell
-.\install.ps1 -NoHermesSkill
-```
-
-```bash
-./install.sh --no-hermes-skill
-```
-
-如果 Unix clone 后丢失了可执行权限，运行：
-
-```bash
-chmod +x ./install.sh ./connectors/hermes/install.sh ./connectors/openclaw/install.sh ./connectors/deepseek-tui/install.sh
-```
+| Agent | 安装命令 | 集成方式 |
+| --- | --- | --- |
+| Codex | `unipet setup codex` | Codex hooks |
+| Claude Code | `unipet setup claude-code` | Claude Code hooks |
+| Hermes | `unipet setup hermes` | Hermes plugin + skill |
+| OpenClaw | `unipet setup openclaw` | OpenClaw plugin |
+| DeepSeek-TUI | `unipet setup deepseek-tui` | 生命周期 hooks |
+| 自定义 Agent | `unipet emit ...` 或 HTTP | localhost bridge |
 
 ## 日常使用
 
@@ -116,19 +79,19 @@ unipet stop
 手动发送测试事件：
 
 ```bash
-unipet emit running "Hermes 工作中" --source hermes --ttl-ms 120000
-unipet emit review "请检查结果" --source hermes --ttl-ms 300000
+unipet emit running "Running tests" --source my-agent --ttl-ms 120000
+unipet emit review "Ready for review" --source my-agent --ttl-ms 300000
 unipet clear
 ```
 
-本地桥监听地址：
+本地桥接地址：
 
 ```text
 HTTP  http://127.0.0.1:8768
 WS    ws://127.0.0.1:8769/ws
 ```
 
-## 宠物市场
+## 宠物
 
 浏览和安装在线宠物：
 
@@ -148,99 +111,77 @@ unipet pet use anby
 unipet pet remove anby
 ```
 
-已安装的宠物和用户配置存放在 `~/.unipet` 下。
+已安装的宠物和用户配置存放在 `~/.unipet`。
 
-## Hermes 集成
+## 连接器管理
 
-npm 安装的用户：
-
-```bash
-unipet setup hermes
-```
-
-源码安装时，顶层安装脚本默认自动安装 Hermes 连接器，
-除非传入 `-NoHermesSkill` 或 `--no-hermes-skill`。
-
-单独安装 Hermes 连接器：
-
-```powershell
-.\connectors\hermes\install.ps1
-```
+`setup` 是日常使用的快捷入口。如果需要完整生命周期管理，可以使用
+`connector` 命令：
 
 ```bash
-./connectors/hermes/install.sh
+unipet connector list
+unipet connector status
+unipet connector disable codex
+unipet connector remove codex
 ```
 
-安装脚本会复制到：
+`codex` 可以替换成 `claude-code`、`hermes`、`openclaw`、`deepseek-tui`
+或 `all`。
+
+## 工作原理
 
 ```text
-$HERMES_HOME/plugins/unipet
-$HERMES_HOME/skills/unipet
+Agent hook/plugin
+      -> UniPet localhost bridge
+      -> state/event engine
+      -> desktop pet renderer
 ```
 
-如果 `hermes` 命令可用，还会自动执行：
+连接器会把 Agent 生命周期事件转换成一个很小的本地事件载荷：
+`source`、`state`、`message`、`action` 和 `ttlMs`。渲染器再把这些事件映射成
+Codex Pet 风格的状态、气泡和桌面宠物动作。
 
-```bash
-hermes plugins enable unipet
-```
+## 环境要求
 
-启用插件后需要开启新的 Hermes 会话，Hermes 按会话加载 hooks。
+- Node.js 18+
+- npm
+- 能运行 Electron 的桌面环境
 
-## OpenClaw 集成
+Windows 是主要测试平台。macOS 和 Linux 使用同一套 Node.js + Electron 运行时。
+WSL 需要 WSLg 或其他可用的 Linux GUI 显示环境。
 
-OpenClaw 支持是可选的，使用原生 hook 插件实现。不修改 OpenClaw 源代码，
-也没有 npm 运行时依赖。
+Hermes、OpenClaw、DeepSeek-TUI、Codex 和 Claude Code 都是可选的，只需要连接
+你实际使用的 Agent。
 
-npm 安装的用户：
+## 从源码安装
 
-```bash
-unipet setup openclaw
-```
+源码安装主要用于开发或尝试尚未发布的改动。
 
-源码安装时同时安装 UniPet 和 OpenClaw 插件：
+Windows PowerShell：
 
 ```powershell
-.\install.ps1 -OpenClawPlugin
+git clone https://github.com/ydyangdan/UniPet.git
+cd UniPet
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
+
+macOS、Linux、Unix 或 WSL：
 
 ```bash
-./install.sh --openclaw-plugin
+git clone https://github.com/ydyangdan/UniPet.git
+cd UniPet
+./install.sh
 ```
 
-单独安装 OpenClaw 插件：
+源码安装脚本会执行 `npm install`、链接全局 `unipet` 命令、启动 UniPet，并输出
+`unipet doctor` 结果。它默认安装 Hermes 连接器，除非你传入 `-NoHermesSkill`
+或 `--no-hermes-skill`。
 
-```powershell
-.\connectors\openclaw\install.ps1
-```
+如果 Unix checkout 后丢失了可执行权限，运行：
 
 ```bash
-./connectors/openclaw/install.sh
+chmod +x ./install.sh ./connectors/*/install.sh
 ```
-
-启用插件后需重启 OpenClaw Gateway，以便加载启动 hooks。
-
-## DeepSeek-TUI 集成
-
-DeepSeek-TUI 支持是可选的，使用 `~/.deepseek/config.toml` 中的官方生命周期
-hooks 实现。不修改 DeepSeek-TUI 源代码。
-
-npm 安装的用户：
-
-```bash
-unipet setup deepseek-tui
-```
-
-单独安装 DeepSeek-TUI 连接器：
-
-```powershell
-.\connectors\deepseek-tui\install.ps1
-```
-
-```bash
-./connectors/deepseek-tui/install.sh
-```
-
-安装后需重启 DeepSeek-TUI，以便加载 hooks。
 
 ## 项目结构
 
@@ -253,11 +194,15 @@ UniPet/
 |   |-- market.js                    Codex 宠物市场客户端
 |   |-- pets.js                      本地宠物库
 |   |-- renderer.js                  雪碧图动画渲染器
+|   |-- life/                        宠物行为层
+|   |-- renderers/                   渲染器适配层
 |   |-- tests/                       Node 测试套件
 |   `-- assets/default/              内置默认宠物
-|-- connectors/hermes/               Hermes 插件和 skill
-|-- connectors/openclaw/             OpenClaw hook 插件
-|-- connectors/deepseek-tui/             DeepSeek-TUI hook 连接器
+|-- connectors/codex/                Codex hook 连接器
+|-- connectors/claude-code/          Claude Code hook 连接器
+|-- connectors/hermes/               Hermes plugin 和 skill
+|-- connectors/openclaw/             OpenClaw hook plugin
+|-- connectors/deepseek-tui/         DeepSeek-TUI hook 连接器
 |-- docs/                            设计文档
 |-- install.ps1                      Windows 安装脚本
 `-- install.sh                       Unix 安装脚本
@@ -266,29 +211,25 @@ UniPet/
 ## 开发
 
 ```bash
-cd overlay
 npm install
 npm run check
 npm start
 ```
 
-运行连接器测试：
-
-```bash
-node --test ../connectors/openclaw/plugin/tests/*.test.js
-node --test ../connectors/deepseek-tui/tests/*.test.js
-```
+`npm run check` 会运行 overlay 测试，以及 OpenClaw、DeepSeek-TUI、Codex、
+Claude Code 的连接器测试。
 
 ## 故障排查
 
-- 先运行 `unipet doctor`。它会检查本地桥、运行时文件、当前宠物和命令配置
-- 如果 `127.0.0.1:8768` 已被占用，用 `unipet stop` 停止旧进程再 `unipet start`
-- 如果 Hermes、OpenClaw 或 DeepSeek-TUI 事件不显示，安装/启用连接器后重启 agent 会话、gateway 或 TUI
-- 如果在 Linux 或 WSL 上看不到宠物，确认 Electron 能在你的桌面环境中打开 GUI 窗口
+- 先运行 `unipet doctor`。它会检查本地桥、运行时文件、当前宠物和命令配置。
+- 如果 `127.0.0.1:8768` 已被占用，先运行 `unipet stop`，再运行 `unipet start`。
+- 安装连接器后，需要重启对应的 Agent 会话、gateway 或 TUI。
+- 如果在 Linux 或 WSL 上看不到宠物，确认 Electron 能在当前桌面环境中打开 GUI 窗口。
 
 ## 文档
 
 - [架构设计](docs/ARCHITECTURE.md)
+- [协议](docs/PROTOCOL.md)
 - [Hermes Skill 约定](docs/HERMES_SKILL_CONTRACT.md)
 - [OpenClaw 连接器](docs/OPENCLAW_CONNECTOR.md)
 - [DeepSeek-TUI 连接器](docs/DEEPSEEK_TUI_CONNECTOR.md)
