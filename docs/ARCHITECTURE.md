@@ -57,7 +57,7 @@ overlay/renderers/spritesheet/adapter.js
 overlay/pets.js
   - local pet library under ~/.unipet/pets
   - current selection in ~/.unipet/config.json
-  - built-in pounce fallback
+  - built-in uni fallback
 
 overlay/market.js
   - Codex Pets market client

@@ -21,9 +21,9 @@ function withTempHome(fn) {
 test('lists built-in pet by default', async () => withTempHome(() => {
   const all = pets.listPets();
   assert.equal(all.length, 1);
-  assert.equal(all[0].id, 'pounce');
+  assert.equal(all[0].id, 'uni');
   assert.equal(all[0].builtin, true);
-  assert.equal(pets.currentPetId(), 'pounce');
+  assert.equal(pets.currentPetId(), 'uni');
 }));
 
 test('installs, selects, and removes a local pet', async () => withTempHome(() => {
@@ -44,10 +44,10 @@ test('installs, selects, and removes a local pet', async () => withTempHome(() =
 
   const removed = pets.removePet('market-cat');
   assert.equal(removed.wasCurrent, true);
-  assert.equal(removed.current.id, 'pounce');
-  assert.equal(pets.currentPetId(), 'pounce');
+  assert.equal(removed.current.id, 'uni');
+  assert.equal(pets.currentPetId(), 'uni');
 }));
 
 test('does not remove the built-in pet', async () => withTempHome(() => {
-  assert.throws(() => pets.removePet('pounce'), /built-in pet cannot be removed/);
+  assert.throws(() => pets.removePet('uni'), /built-in pet cannot be removed/);
 }));

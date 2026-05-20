@@ -3,7 +3,7 @@ const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-const BUILTIN_PET_ID = 'pounce';
+const BUILTIN_PET_ID = 'uni';
 const DEFAULT_SPRITESHEET = 'spritesheet.webp';
 
 function unipetHome() {
@@ -79,8 +79,8 @@ function builtinPet() {
   const dir = builtinPetDir();
   const manifest = readManifest(dir) || {
     id: BUILTIN_PET_ID,
-    displayName: 'Pounce',
-    description: 'Built-in UniPet pet.',
+    displayName: 'Uni',
+    description: 'Built-in UniPet AI agent desktop companion.',
     source: 'builtin',
     dir,
     manifestPath: path.join(dir, 'pet.json'),

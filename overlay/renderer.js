@@ -114,7 +114,7 @@ const anim = {
     temporaryTimer: null,
     settleTimer: null,
     spritesheetUrl: 'assets/default/spritesheet.webp',
-    petId: 'pounce',
+    petId: 'uni',
     lifeState: behavior.createLifeState ? behavior.createLifeState() : null,
     bubbleTimer: null,
     lastBubbleText: '',
