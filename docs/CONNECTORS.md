@@ -27,7 +27,7 @@ agent.
 | --- | --- | --- | --- |
 | Codex | `unipet agent add codex` | lifecycle hooks | `codex` |
 | Claude Code | `unipet agent add claude-code` | lifecycle hooks | `claude-code` |
-| Hermes | `unipet agent add hermes` | plugin + generic UniPet skill | `hermes` |
+| Hermes | `unipet agent add hermes` | plugin | `hermes` |
 | OpenClaw | `unipet agent add openclaw` | native plugin | `openclaw` |
 | DeepSeek-TUI | `unipet agent add deepseek-tui` | managed hooks block | `deepseek-tui` |
 | Custom agent | HTTP or `unipet state` | direct bridge events | chosen by caller |
@@ -72,9 +72,8 @@ configuration files. The hook command remains internal: `unipet hook ...` is for
 agent runtimes, not daily user interaction.
 
 Hermes installs a small Python plugin because Hermes loads plugins in its own
-Python environment. That plugin only uses Python standard library modules. The
-bundled `connectors/hermes/skills/unipet/SKILL.md` is a generic UniPet agent
-skill used as a manual fallback.
+Python environment. That plugin only uses Python standard library modules and
+does not require changes to Hermes core code.
 
 OpenClaw uses a native plugin under `connectors/openclaw/plugin`. It can show
 the first part of outgoing replies in the pet bubble when the upstream event

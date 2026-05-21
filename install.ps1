@@ -1,7 +1,5 @@
 param(
-    [switch]$NoStart,
-    [switch]$NoHermesSkill,
-    [switch]$OpenClawPlugin
+    [switch]$NoStart
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,14 +29,6 @@ if ($ResolvedUnipet -and $ResolvedUnipet.Source -and -not $ResolvedUnipet.Source
     Write-Warning "Another unipet command is first on PATH: $($ResolvedUnipet.Source)"
     Write-Warning "Using npm-linked UniPet for this installer: $NpmUnipet"
     $UnipetCommand = $NpmUnipet
-}
-
-if (-not $NoHermesSkill) {
-    & (Join-Path $Root "connectors\hermes\install.ps1") -NoStart
-}
-
-if ($OpenClawPlugin) {
-    & (Join-Path $Root "connectors\openclaw\install.ps1") -NoStart
 }
 
 if (-not $NoStart) {

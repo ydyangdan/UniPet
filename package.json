@@ -52,7 +52,6 @@
     "connectors/hermes/install.ps1",
     "connectors/hermes/install.sh",
     "connectors/hermes/plugins/**",
-    "connectors/hermes/skills/**",
     "connectors/openclaw/install.ps1",
     "connectors/openclaw/install.sh",
     "connectors/openclaw/plugin/index.js",

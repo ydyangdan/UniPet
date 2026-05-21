@@ -22,16 +22,16 @@ test('resolves Hermes home from explicit options before environment', () => {
 test('removes only managed child connector directories', () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'unipet-connector-test-'));
   try {
-    const skill = path.join(temp, 'skills', 'unipet');
-    fs.mkdirSync(skill, { recursive: true });
-    fs.writeFileSync(path.join(skill, 'file.txt'), 'x');
+    const plugin = path.join(temp, 'plugins', 'unipet');
+    fs.mkdirSync(plugin, { recursive: true });
+    fs.writeFileSync(path.join(plugin, 'file.txt'), 'x');
 
-    connectors.safeRemoveManagedChild(skill, 'skills', 'unipet');
-    assert.equal(fs.existsSync(skill), false);
+    connectors.safeRemoveManagedChild(plugin, 'plugins', 'unipet');
+    assert.equal(fs.existsSync(plugin), false);
 
-    const unmanaged = path.join(temp, 'skills', 'other');
+    const unmanaged = path.join(temp, 'plugins', 'other');
     fs.mkdirSync(unmanaged, { recursive: true });
-    assert.throws(() => connectors.safeRemoveManagedChild(unmanaged, 'skills', 'unipet'), /Refusing/);
+    assert.throws(() => connectors.safeRemoveManagedChild(unmanaged, 'plugins', 'unipet'), /Refusing/);
   } finally {
     fs.rmSync(temp, { recursive: true, force: true });
   }

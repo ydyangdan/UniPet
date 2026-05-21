@@ -14,7 +14,7 @@ const CONNECTORS = [
   {
     id: HERMES_ID,
     label: 'Hermes',
-    description: 'Hermes plugin and skill',
+    description: 'Hermes plugin',
   },
   {
     id: OPENCLAW_ID,
@@ -119,7 +119,6 @@ function hermesPaths(options = {}) {
   const home = resolveHermesHome(options);
   return {
     home,
-    skill: path.join(home, 'skills', 'unipet'),
     plugin: path.join(home, 'plugins', 'unipet'),
   };
 }
@@ -170,11 +169,10 @@ function hermesStatus(options = {}) {
   return {
     id: HERMES_ID,
     label: 'Hermes',
-    installed: fs.existsSync(paths.skill) && fs.existsSync(paths.plugin),
+    installed: fs.existsSync(paths.plugin),
     enabled: pluginState,
     details: [
       `home: ${paths.home}`,
-      `skill: ${lineWith(fs.existsSync(paths.skill))} (${paths.skill})`,
       `plugin: ${lineWith(fs.existsSync(paths.plugin))} (${paths.plugin})`,
       `hermes command: ${commandFound ? 'found' : 'missing'}`,
       `plugin state: ${pluginState}`,
@@ -339,10 +337,8 @@ function removeHermes(options = {}, io = console) {
   } else {
     io.error("Hermes command not found. Removing files only; run 'hermes plugins disable unipet' if needed later.");
   }
-  safeRemoveManagedChild(paths.skill, 'skills', 'unipet');
   safeRemoveManagedChild(paths.plugin, 'plugins', 'unipet');
   io.log('Removed Hermes connector files:');
-  io.log(`  ${paths.skill}`);
   io.log(`  ${paths.plugin}`);
   return 0;
 }

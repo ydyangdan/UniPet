@@ -62,10 +62,7 @@ if (-not $HermesHome -or $HermesHome.Trim().Length -eq 0) {
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path (Join-Path $ScriptDir "..\..")
 $OverlayDir = Join-Path $ProjectRoot "overlay"
-$SourceSkill = Join-Path $ScriptDir "skills\unipet"
 $SourcePlugin = Join-Path $ScriptDir "plugins\unipet"
-$TargetSkills = Join-Path $HermesHome "skills"
-$TargetSkill = Join-Path $TargetSkills "unipet"
 $TargetPlugins = Join-Path $HermesHome "plugins"
 $TargetPlugin = Join-Path $TargetPlugins "unipet"
 
@@ -99,28 +96,18 @@ if ($ResolvedUnipet -and $ResolvedUnipet.Source -and -not $ResolvedUnipet.Source
     $UnipetCommand = $NpmUnipet
 }
 
-if (-not (Test-Path $SourceSkill)) {
-    throw "Source skill not found: $SourceSkill"
-}
 if (-not (Test-Path $SourcePlugin)) {
     throw "Source plugin not found: $SourcePlugin"
 }
 
-New-Item -ItemType Directory -Force -Path $TargetSkills | Out-Null
 New-Item -ItemType Directory -Force -Path $TargetPlugins | Out-Null
 
-if (Test-Path $TargetSkill) {
-    Remove-Item -Recurse -Force -LiteralPath $TargetSkill
-}
 if (Test-Path $TargetPlugin) {
     Remove-Item -Recurse -Force -LiteralPath $TargetPlugin
 }
 
-Copy-Item -Recurse -Force -LiteralPath $SourceSkill -Destination $TargetSkill
 Copy-Item -Recurse -Force -LiteralPath $SourcePlugin -Destination $TargetPlugin
 
-Write-Host "Installed UniPet agent skill for Hermes:"
-Write-Host "  $TargetSkill"
 Write-Host "Installed UniPet Hermes plugin:"
 Write-Host "  $TargetPlugin"
 

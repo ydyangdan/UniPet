@@ -62,7 +62,7 @@ npm update -g uni-pet
 | --- | --- | --- |
 | Codex | `unipet agent add codex` | Codex hooks |
 | Claude Code | `unipet agent add claude-code` | Claude Code hooks |
-| Hermes | `unipet agent add hermes` | Hermes plugin + generic UniPet skill |
+| Hermes | `unipet agent add hermes` | Hermes plugin |
 | OpenClaw | `unipet agent add openclaw` | OpenClaw plugin |
 | DeepSeek-TUI | `unipet agent add deepseek-tui` | lifecycle hooks |
 | Custom agents | `unipet state ...` or HTTP | localhost bridge |
@@ -176,8 +176,8 @@ cd UniPet
 ```
 
 The source installer runs `npm install`, links the global `unipet` command,
-starts UniPet, and prints `unipet doctor` output. It installs the Hermes
-connector by default unless you pass `-NoHermesSkill` or `--no-hermes-skill`.
+starts UniPet, and prints `unipet doctor` output. It does not change any agent
+configuration. Add only the connectors you need with `unipet agent add ...`.
 
 If a Unix checkout loses executable bits, run:
 
@@ -202,7 +202,7 @@ UniPet/
 |   `-- assets/default/              bundled default pet
 |-- connectors/codex/                Codex hook connector
 |-- connectors/claude-code/          Claude Code hook connector
-|-- connectors/hermes/               Hermes plugin and generic UniPet skill
+|-- connectors/hermes/               Hermes plugin connector
 |-- connectors/openclaw/             OpenClaw hook plugin
 |-- connectors/deepseek-tui/         DeepSeek-TUI hook connector
 |-- docs/                            design notes

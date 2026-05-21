@@ -45,10 +45,7 @@ if [ -z "${HERMES_HOME:-}" ]; then
   HERMES_HOME="$(resolve_hermes_home_from_command)"
 fi
 HERMES_HOME="${HERMES_HOME:-"$HOME/.hermes"}"
-SOURCE_SKILL="$SCRIPT_DIR/skills/unipet"
 SOURCE_PLUGIN="$SCRIPT_DIR/plugins/unipet"
-TARGET_SKILLS="$HERMES_HOME/skills"
-TARGET_SKILL="$TARGET_SKILLS/unipet"
 TARGET_PLUGINS="$HERMES_HOME/plugins"
 TARGET_PLUGIN="$TARGET_PLUGINS/unipet"
 
@@ -63,24 +60,15 @@ if ! command -v unipet >/dev/null 2>&1; then
   (cd "$OVERLAY_DIR" && npm link)
 fi
 
-if [ ! -d "$SOURCE_SKILL" ]; then
-  echo "Source skill not found: $SOURCE_SKILL" >&2
-  exit 1
-fi
 if [ ! -d "$SOURCE_PLUGIN" ]; then
   echo "Source plugin not found: $SOURCE_PLUGIN" >&2
   exit 1
 fi
 
-mkdir -p "$TARGET_SKILLS"
 mkdir -p "$TARGET_PLUGINS"
-rm -rf "$TARGET_SKILL"
 rm -rf "$TARGET_PLUGIN"
-cp -R "$SOURCE_SKILL" "$TARGET_SKILL"
 cp -R "$SOURCE_PLUGIN" "$TARGET_PLUGIN"
 
-echo "Installed UniPet agent skill for Hermes:"
-echo "  $TARGET_SKILL"
 echo "Installed UniPet Hermes plugin:"
 echo "  $TARGET_PLUGIN"
 

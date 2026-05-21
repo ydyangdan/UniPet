@@ -60,7 +60,7 @@ npm update -g uni-pet
 | --- | --- | --- |
 | Codex | `unipet agent add codex` | Codex hooks |
 | Claude Code | `unipet agent add claude-code` | Claude Code hooks |
-| Hermes | `unipet agent add hermes` | Hermes plugin + 通用 UniPet skill |
+| Hermes | `unipet agent add hermes` | Hermes plugin |
 | OpenClaw | `unipet agent add openclaw` | OpenClaw plugin |
 | DeepSeek-TUI | `unipet agent add deepseek-tui` | 生命周期 hooks |
 | 自定义 Agent | `unipet state ...` 或 HTTP | localhost bridge |
@@ -174,8 +174,8 @@ cd UniPet
 ```
 
 源码安装脚本会执行 `npm install`、链接全局 `unipet` 命令、启动 UniPet，并输出
-`unipet doctor` 结果。它默认安装 Hermes 连接器，除非你传入 `-NoHermesSkill`
-或 `--no-hermes-skill`。
+`unipet doctor` 结果。它不会修改任何 Agent 配置；需要哪个连接器，再用
+`unipet agent add ...` 显式添加。
 
 如果 Unix checkout 后丢失了可执行权限，运行：
 
@@ -200,7 +200,7 @@ UniPet/
 |   `-- assets/default/              内置默认宠物
 |-- connectors/codex/                Codex hook 连接器
 |-- connectors/claude-code/          Claude Code hook 连接器
-|-- connectors/hermes/               Hermes plugin 和通用 UniPet skill
+|-- connectors/hermes/               Hermes plugin 连接器
 |-- connectors/openclaw/             OpenClaw hook plugin
 |-- connectors/deepseek-tui/         DeepSeek-TUI hook 连接器
 |-- docs/                            设计文档

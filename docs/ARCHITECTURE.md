@@ -41,7 +41,7 @@ Renderer
 | --- | --- | --- |
 | Codex | managed hooks | `codex` |
 | Claude Code | managed hooks | `claude-code` |
-| Hermes | plugin + generic UniPet skill | `hermes` |
+| Hermes | plugin | `hermes` |
 | OpenClaw | native plugin | `openclaw` |
 | DeepSeek-TUI | managed hooks block | `deepseek-tui` |
 | Custom agent | HTTP or `unipet state` | caller-defined |
