@@ -62,7 +62,7 @@ npm update -g uni-pet
 | --- | --- | --- |
 | Codex | `unipet agent add codex` | Codex hooks |
 | Claude Code | `unipet agent add claude-code` | Claude Code hooks |
-| Hermes | `unipet agent add hermes` | Hermes plugin + skill |
+| Hermes | `unipet agent add hermes` | Hermes plugin + generic UniPet skill |
 | OpenClaw | `unipet agent add openclaw` | OpenClaw plugin |
 | DeepSeek-TUI | `unipet agent add deepseek-tui` | lifecycle hooks |
 | Custom agents | `unipet state ...` or HTTP | localhost bridge |
@@ -202,7 +202,7 @@ UniPet/
 |   `-- assets/default/              bundled default pet
 |-- connectors/codex/                Codex hook connector
 |-- connectors/claude-code/          Claude Code hook connector
-|-- connectors/hermes/               Hermes plugin and skill
+|-- connectors/hermes/               Hermes plugin and generic UniPet skill
 |-- connectors/openclaw/             OpenClaw hook plugin
 |-- connectors/deepseek-tui/         DeepSeek-TUI hook connector
 |-- docs/                            design notes
@@ -234,9 +234,7 @@ DeepSeek-TUI, Codex, and Claude Code.
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Protocol](docs/PROTOCOL.md)
-- [Hermes Skill Contract](docs/HERMES_SKILL_CONTRACT.md)
-- [OpenClaw Connector](docs/OPENCLAW_CONNECTOR.md)
-- [DeepSeek-TUI Connector](docs/DEEPSEEK_TUI_CONNECTOR.md)
+- [Connectors](docs/CONNECTORS.md)
 
 ## License
 

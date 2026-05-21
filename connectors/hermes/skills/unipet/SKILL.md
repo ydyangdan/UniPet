@@ -1,7 +1,7 @@
 ---
 name: unipet
-description: "Drive UniPet, a local Codex-compatible desktop pet, from Hermes Agent task lifecycle events."
-version: 0.4.0
+description: "Drive UniPet, a local desktop pet for AI coding agents, through the shared agent state protocol."
+version: 0.5.0
 author: UniPet
 license: MIT
 platforms: [windows, wsl, linux, macos]
@@ -9,63 +9,50 @@ prerequisites:
   commands: [unipet]
 metadata:
   hermes:
-    tags: [desktop-pet, codex-pet, status, local-first, windows, wsl]
+    tags: [desktop-pet, codex-pet, status, local-first, agent-state]
     requires_toolsets: [terminal]
 ---
 
-# UniPet
+# UniPet Agent Skill
 
-UniPet shows Hermes task state in a local floating desktop pet.
+UniPet shows AI agent status in a small local desktop pet. This skill is the
+manual fallback for any agent that can run shell commands. When a native UniPet
+connector is installed, hooks or plugins send these events automatically.
 
-This skill is the manual fallback contract. When the Hermes plugin `unipet` is installed and enabled, lifecycle hooks send these status events automatically.
+Use a stable source id for the current agent. In Hermes, use `hermes`.
 
-It is zero-intrusion:
+## Rules
 
-- Do not edit Hermes core files.
-- Do not require a daemon inside Hermes.
-- Use the local `unipet` CLI only.
-- Keep messages short and do not include secrets.
+- Do not modify agent core files.
+- Do not send secrets, logs, prompts, or large outputs in messages.
+- Keep messages short enough for a desktop bubble.
+- Use only the five canonical states: `idle`, `running`, `waiting`, `failed`,
+  and `review`.
+- Map similar terms into those states. For example, `thinking` and `planning`
+  become `running`; `success` and `done` become `review`; `error` becomes
+  `failed`.
 
-## Startup
+## Commands
 
-Before the first status event, make sure UniPet is running:
+Start UniPet if needed:
 
 ```bash
 unipet start
 ```
 
-`unipet start` is idempotent. If UniPet is already healthy, it keeps the current runtime.
-
-## Required States
-
-Use exactly the Codex Pet semantic states:
-
-```text
-idle
-running
-waiting
-failed
-review
-```
-
-Do not send non-Codex states such as `thinking`, `planning`, `success`, `listening`, or `speaking`.
-If those concepts appear, map them to the five states above.
-
-## Commands
-
-When starting real work:
+When real work starts:
 
 ```bash
-unipet state running "Hermes is working" --source hermes --ttl 2m
+unipet state running "Working on task" --source hermes
 ```
 
 When waiting for user input, approval, credentials, or clarification:
 
 ```bash
-unipet state waiting "Waiting for user confirmation" --source hermes
+unipet state waiting "Waiting for approval" --source hermes
 ```
 
-When work is complete and ready for user review:
+When work is complete and ready for review:
 
 ```bash
 unipet state review "Done, please review" --source hermes --ttl 12s
@@ -74,7 +61,7 @@ unipet state review "Done, please review" --source hermes --ttl 12s
 When a command, build, test, network call, or integration step fails:
 
 ```bash
-unipet state failed "Task failed: short reason" --source hermes --ttl 20s
+unipet state failed "Task failed" --source hermes --ttl 20s
 ```
 
 When explicitly asked to reset the pet:
@@ -91,10 +78,3 @@ unipet doctor
 curl -fsS http://127.0.0.1:8768/health
 curl -fsS http://127.0.0.1:8768/api/pet/view
 ```
-
-## Safety
-
-- UniPet listens on localhost only.
-- Do not modify Hermes core.
-- Do not send secrets in the message text.
-- Keep messages short; the bubble is for status, not logs.

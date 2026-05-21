@@ -79,7 +79,7 @@ rm -rf "$TARGET_PLUGIN"
 cp -R "$SOURCE_SKILL" "$TARGET_SKILL"
 cp -R "$SOURCE_PLUGIN" "$TARGET_PLUGIN"
 
-echo "Installed UniPet Hermes skill:"
+echo "Installed UniPet agent skill for Hermes:"
 echo "  $TARGET_SKILL"
 echo "Installed UniPet Hermes plugin:"
 echo "  $TARGET_PLUGIN"

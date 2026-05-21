@@ -119,7 +119,7 @@ if (Test-Path $TargetPlugin) {
 Copy-Item -Recurse -Force -LiteralPath $SourceSkill -Destination $TargetSkill
 Copy-Item -Recurse -Force -LiteralPath $SourcePlugin -Destination $TargetPlugin
 
-Write-Host "Installed UniPet Hermes skill:"
+Write-Host "Installed UniPet agent skill for Hermes:"
 Write-Host "  $TargetSkill"
 Write-Host "Installed UniPet Hermes plugin:"
 Write-Host "  $TargetPlugin"

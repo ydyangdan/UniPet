@@ -60,7 +60,7 @@ npm update -g uni-pet
 | --- | --- | --- |
 | Codex | `unipet agent add codex` | Codex hooks |
 | Claude Code | `unipet agent add claude-code` | Claude Code hooks |
-| Hermes | `unipet agent add hermes` | Hermes plugin + skill |
+| Hermes | `unipet agent add hermes` | Hermes plugin + 通用 UniPet skill |
 | OpenClaw | `unipet agent add openclaw` | OpenClaw plugin |
 | DeepSeek-TUI | `unipet agent add deepseek-tui` | 生命周期 hooks |
 | 自定义 Agent | `unipet state ...` 或 HTTP | localhost bridge |
@@ -200,7 +200,7 @@ UniPet/
 |   `-- assets/default/              内置默认宠物
 |-- connectors/codex/                Codex hook 连接器
 |-- connectors/claude-code/          Claude Code hook 连接器
-|-- connectors/hermes/               Hermes plugin 和 skill
+|-- connectors/hermes/               Hermes plugin 和通用 UniPet skill
 |-- connectors/openclaw/             OpenClaw hook plugin
 |-- connectors/deepseek-tui/         DeepSeek-TUI hook 连接器
 |-- docs/                            设计文档
@@ -230,9 +230,7 @@ Claude Code 的连接器测试。
 
 - [架构设计](docs/ARCHITECTURE.md)
 - [协议](docs/PROTOCOL.md)
-- [Hermes Skill 约定](docs/HERMES_SKILL_CONTRACT.md)
-- [OpenClaw 连接器](docs/OPENCLAW_CONNECTOR.md)
-- [DeepSeek-TUI 连接器](docs/DEEPSEEK_TUI_CONNECTOR.md)
+- [连接器](docs/CONNECTORS.md)
 
 ## 许可证
 
