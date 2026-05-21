@@ -2,14 +2,17 @@
 
 [English README](README.md)
 
+[![npm](https://img.shields.io/npm/v/uni-pet?color=0ea5e9)](https://www.npmjs.com/package/uni-pet)
+[![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 UniPet 是一款面向 AI 编程助手的通用桌面宠物。
 
-你可以把它理解成“通用版 Codex Pet”：让 Codex、Claude Code、Hermes、
-OpenClaw、DeepSeek-TUI、shell 脚本，甚至你自己的 Agent，都拥有一个能实时
-反应状态的桌面宠物。UniPet 使用轻量的 Node.js + Electron 本地悬浮窗，通过
-localhost 和零侵入 hooks 接入，不修改 Agent 源码，也尽量不增加额外依赖。
+你可以把它理解成“通用版 Codex Pet”：把看不见的 Agent 工作过程变成一个会动的
+桌面伙伴，让你直观看到它正在思考、执行工具、等待输入、失败，还是已经准备好让你
+检查。UniPet 围绕轻量本地协议设计，任何 Agent 都可以在不修改核心代码的情况下
+驱动它。
 
-![UniPet demo](docs/assets/unipet-hermes-demo.png)
+![UniPet demo](https://raw.githubusercontent.com/ydyangdan/UniPet/main/docs/assets/unipet-promo.gif)
 
 ```bash
 npm install -g uni-pet
@@ -19,15 +22,13 @@ unipet agent add codex
 
 ## 为什么用 UniPet
 
-- 像 Codex Pet 一样展示桌面宠物，但不只服务于 Codex。
-- 支持 Codex、Claude Code、Hermes、OpenClaw、DeepSeek-TUI 和自定义 Agent。
+- 面向所有 Agent 的通用状态层：Codex、Claude Code、Hermes、OpenClaw、DeepSeek-TUI 和自定义 Agent 都能接入。
+- 真实工作状态可视化：idle、running、waiting、failed、review 一眼可见。
+- 简单本地协议：可以通过 hook、plugin、配置块、CLI、HTTP 或 WebSocket 驱动。
+- 零侵入：不修改上游 Agent 源码。
 - 本地优先：只监听 localhost，事件留在本机。
-- 零侵入：通过 hook、plugin 或配置块接入，不修改上游 Agent 源码。
 - 轻量：Node.js + Electron，UniPet 本身不要求 Python。
-- 支持 Codex 兼容宠物市场，可以用命令安装、切换和删除宠物。
-
-Hermes 连接器里有一个很小的 Python 插件，仅仅是因为 Hermes 会在自己的
-Python 环境中加载插件；该插件只使用 Python 标准库。
+- 支持 Codex 兼容宠物：可以用命令安装、切换和删除皮肤。
 
 ## 快速开始
 
@@ -63,7 +64,7 @@ npm update -g uni-pet
 | Hermes | `unipet agent add hermes` | Hermes plugin |
 | OpenClaw | `unipet agent add openclaw` | OpenClaw plugin |
 | DeepSeek-TUI | `unipet agent add deepseek-tui` | 生命周期 hooks |
-| 自定义 Agent | `unipet state ...` 或 HTTP | localhost bridge |
+| 自定义 Agent | `unipet state ...` 或 HTTP | UniPet 本地协议 |
 
 ## 日常使用
 
@@ -90,6 +91,19 @@ unipet clear
 HTTP  http://127.0.0.1:8768
 WS    ws://127.0.0.1:8769/ws
 ```
+
+## 通用协议
+
+任何工具都可以用同一套事件形态更新宠物：
+
+```bash
+unipet state running "Running tests" --source my-agent
+unipet state waiting "Waiting for approval" --source my-agent --ttl 2m
+unipet state review "Ready for review" --source my-agent
+```
+
+直接集成时，可以通过本地 HTTP 或 WebSocket 发送 `source`、`state`、`message`、
+`action` 和 `ttl`。详见 [协议](docs/PROTOCOL.md)。
 
 ## 宠物
 
@@ -141,49 +155,28 @@ Agent hook/plugin
 `source`、`state`、`message`、`action` 和 `ttl`。渲染器再把这些事件映射成
 Codex Pet 风格的状态、气泡和桌面宠物动作。
 
-## 环境要求
+## 运行平台
 
 - Node.js 18+
 - npm
-- 能运行 Electron 的桌面环境
+- Windows、macOS、Linux、Unix 或 WSL
 
-Windows 是主要测试平台。macOS 和 Linux 使用同一套 Node.js + Electron 运行时。
-WSL 需要 WSLg 或其他可用的 Linux GUI 显示环境。
+UniPet 可以在 Windows、macOS、Linux、Unix 或 WSL 上运行。Agent 连接器都是
+可选的，只需要连接你实际使用的 Agent。
 
-Hermes、OpenClaw、DeepSeek-TUI、Codex 和 Claude Code 都是可选的，只需要连接
-你实际使用的 Agent。
-
-## 从源码安装
-
-源码安装主要用于开发或尝试尚未发布的改动。
-
-Windows PowerShell：
-
-```powershell
-git clone https://github.com/ydyangdan/UniPet.git
-cd UniPet
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
-
-macOS、Linux、Unix 或 WSL：
+## 开发者
 
 ```bash
-git clone https://github.com/ydyangdan/UniPet.git
-cd UniPet
-./install.sh
+npm install
+npm run check
+npm start
 ```
 
-源码安装脚本会执行 `npm install`、链接全局 `unipet` 命令、启动 UniPet，并输出
-`unipet doctor` 结果。它不会修改任何 Agent 配置；需要哪个连接器，再用
-`unipet agent add ...` 显式添加。
+`npm run check` 会运行 overlay 测试，以及 OpenClaw、DeepSeek-TUI、Codex、
+Claude Code 的连接器测试。
 
-如果 Unix checkout 后丢失了可执行权限，运行：
-
-```bash
-chmod +x ./install.sh ./connectors/*/install.sh
-```
-
-## 项目结构
+<details>
+<summary>项目结构</summary>
 
 ```text
 UniPet/
@@ -208,23 +201,13 @@ UniPet/
 `-- install.sh                       Unix 安装脚本
 ```
 
-## 开发
-
-```bash
-npm install
-npm run check
-npm start
-```
-
-`npm run check` 会运行 overlay 测试，以及 OpenClaw、DeepSeek-TUI、Codex、
-Claude Code 的连接器测试。
+</details>
 
 ## 故障排查
 
 - 先运行 `unipet doctor`。它会检查本地桥、运行时文件、当前宠物和命令配置。
 - 如果 `127.0.0.1:8768` 已被占用，先运行 `unipet stop`，再运行 `unipet start`。
 - 安装连接器后，需要重启对应的 Agent 会话、gateway 或 TUI。
-- 如果在 Linux 或 WSL 上看不到宠物，确认 Electron 能在当前桌面环境中打开 GUI 窗口。
 
 ## 文档
 

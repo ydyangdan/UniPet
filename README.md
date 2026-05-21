@@ -2,15 +2,18 @@
 
 [中文文档](README_zh.md)
 
+[![npm](https://img.shields.io/npm/v/uni-pet?color=0ea5e9)](https://www.npmjs.com/package/uni-pet)
+[![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 UniPet is a Universal Desktop Pet for AI coding agents.
 
-Think Codex Pet, but for every coding agent. UniPet gives Codex, Claude Code,
-Hermes, OpenClaw, DeepSeek-TUI, shell scripts, and your own agents a small
-animated desktop companion that reacts to their real-time state. It runs locally
-as a lightweight Node.js + Electron overlay, connects through zero-intrusion
-hooks on localhost, and keeps your agent setup clean.
+Think Codex Pet, but for every agent. UniPet turns invisible agent work into a
+small animated desktop companion, so you can see when your agent is thinking,
+running tools, waiting for input, failing, or ready for review. It is powered by
+a lightweight local protocol that any agent can speak without patching its core
+code.
 
-![UniPet demo](docs/assets/unipet-hermes-demo.png)
+![UniPet demo](https://raw.githubusercontent.com/ydyangdan/UniPet/main/docs/assets/unipet-promo.gif)
 
 ```bash
 npm install -g uni-pet
@@ -20,16 +23,13 @@ unipet agent add codex
 
 ## Why UniPet
 
-- Codex Pet-style desktop companion, but not limited to Codex.
-- Works with Codex, Claude Code, Hermes, OpenClaw, DeepSeek-TUI, and custom agents.
+- Universal agent status layer for Codex, Claude Code, Hermes, OpenClaw, DeepSeek-TUI, and custom agents.
+- Visual feedback for real work: idle, running, waiting, failed, and review states.
+- Simple local protocol: drive UniPet from hooks, plugins, config blocks, CLI, HTTP, or WebSocket.
+- Zero-intrusion: integrate with agents without modifying their source code.
 - Local-first: listens on localhost and keeps events on your machine.
-- Zero-intrusion: uses hooks, plugins, or config blocks instead of patching agent source code.
 - Lightweight: Node.js + Electron; UniPet itself does not require Python.
-- Codex-compatible pet market support: install, switch, and remove pets from the CLI.
-
-The Hermes connector contains a tiny Python plugin only because Hermes loads
-plugins in its own Python environment. That plugin uses only Python standard
-library modules.
+- Codex-compatible pets: install, switch, and remove skins from the CLI.
 
 ## Quick Start
 
@@ -65,7 +65,7 @@ npm update -g uni-pet
 | Hermes | `unipet agent add hermes` | Hermes plugin |
 | OpenClaw | `unipet agent add openclaw` | OpenClaw plugin |
 | DeepSeek-TUI | `unipet agent add deepseek-tui` | lifecycle hooks |
-| Custom agents | `unipet state ...` or HTTP | localhost bridge |
+| Custom agents | `unipet state ...` or HTTP | UniPet local protocol |
 
 ## Daily Use
 
@@ -92,6 +92,19 @@ The local bridge listens on:
 HTTP  http://127.0.0.1:8768
 WS    ws://127.0.0.1:8769/ws
 ```
+
+## Universal Protocol
+
+Any tool can update the pet through the same event shape:
+
+```bash
+unipet state running "Running tests" --source my-agent
+unipet state waiting "Waiting for approval" --source my-agent --ttl 2m
+unipet state review "Ready for review" --source my-agent
+```
+
+For direct integrations, send local HTTP or WebSocket events with `source`,
+`state`, `message`, `action`, and `ttl`. See [Protocol](docs/PROTOCOL.md).
 
 ## Pets
 
@@ -143,49 +156,28 @@ Connectors translate agent lifecycle events into a small local event payload:
 `source`, `state`, `message`, `action`, and `ttl`. The renderer then maps
 those events into Codex Pet-style states, bubbles, and small companion motions.
 
-## Requirements
+## Platforms
 
 - Node.js 18+
 - npm
-- A desktop session that can run Electron
+- Windows, macOS, Linux, Unix, or WSL
 
-Windows is the primary tested platform. macOS and Linux use the same Node.js +
-Electron runtime. WSL requires WSLg or another working Linux GUI display.
+UniPet can run on Windows, macOS, Linux, Unix, or WSL. Agent integrations are
+optional; connect only the agents you actually use.
 
-Hermes, OpenClaw, DeepSeek-TUI, Codex, and Claude Code are optional. Install or
-connect only the agents you actually use.
-
-## Install From Source
-
-GitHub source installs are mainly for development or trying unreleased changes.
-
-Windows PowerShell:
-
-```powershell
-git clone https://github.com/ydyangdan/UniPet.git
-cd UniPet
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
-
-macOS, Linux, Unix, or WSL:
+## For Developers
 
 ```bash
-git clone https://github.com/ydyangdan/UniPet.git
-cd UniPet
-./install.sh
+npm install
+npm run check
+npm start
 ```
 
-The source installer runs `npm install`, links the global `unipet` command,
-starts UniPet, and prints `unipet doctor` output. It does not change any agent
-configuration. Add only the connectors you need with `unipet agent add ...`.
+`npm run check` runs the overlay tests and connector tests for OpenClaw,
+DeepSeek-TUI, Codex, and Claude Code.
 
-If a Unix checkout loses executable bits, run:
-
-```bash
-chmod +x ./install.sh ./connectors/*/install.sh
-```
-
-## Project Layout
+<details>
+<summary>Project layout</summary>
 
 ```text
 UniPet/
@@ -210,16 +202,7 @@ UniPet/
 `-- install.sh                       Unix installer
 ```
 
-## Development
-
-```bash
-npm install
-npm run check
-npm start
-```
-
-`npm run check` runs the overlay tests and connector tests for OpenClaw,
-DeepSeek-TUI, Codex, and Claude Code.
+</details>
 
 ## Troubleshooting
 
@@ -227,8 +210,6 @@ DeepSeek-TUI, Codex, and Claude Code.
   pet, and command setup.
 - If `127.0.0.1:8768` is already in use, run `unipet stop`, then `unipet start`.
 - After installing a connector, restart the related agent session, gateway, or TUI.
-- If the pet does not appear on Linux or WSL, make sure Electron can open a GUI
-  window in your desktop session.
 
 ## Docs
 
