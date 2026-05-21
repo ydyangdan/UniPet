@@ -7,6 +7,9 @@ const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 8768;
 const DEFAULT_TIMEOUT_MS = 350;
 const DEFAULT_SOURCE = 'deepseek-tui';
+const READY_TTL = 60000;
+const ACTIVE_TTL = 120000;
+const FAILURE_TTL = 20000;
 
 function envBool(value, fallback = false) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -45,7 +48,7 @@ function baseEvent(env, state, message, options = {}) {
     state,
     message: clip(message, state, 180),
     action: options.action || 'update',
-    ttlMs: options.ttlMs,
+    ttl: options.ttl,
   };
 }
 
@@ -62,21 +65,21 @@ function buildEvent(eventName, env = process.env) {
   const toolName = clip(env.DEEPSEEK_TOOL_NAME, 'tool', 48);
 
   if (event === 'session_start') {
-    return baseEvent(env, 'idle', 'DeepSeek-TUI ready', { ttlMs: 60000 });
+    return baseEvent(env, 'idle', 'DeepSeek-TUI ready', { ttl: READY_TTL });
   }
   if (event === 'message_submit') {
-    return baseEvent(env, 'running', 'DeepSeek-TUI is thinking', { ttlMs: 120000 });
+    return baseEvent(env, 'running', 'DeepSeek-TUI is thinking', { ttl: ACTIVE_TTL });
   }
   if (event === 'tool_call_before') {
-    return baseEvent(env, 'running', `Running ${toolName}`, { ttlMs: 120000 });
+    return baseEvent(env, 'running', `Running ${toolName}`, { ttl: ACTIVE_TTL });
   }
   if (event === 'tool_call_after') {
     if (!isToolFailure(env)) return null;
-    return baseEvent(env, 'failed', `${toolName} failed`, { ttlMs: 300000 });
+    return baseEvent(env, 'failed', `${toolName} failed`, { ttl: FAILURE_TTL });
   }
   if (event === 'on_error') {
     const message = clip(env.DEEPSEEK_ERROR, 'DeepSeek-TUI error', 120);
-    return baseEvent(env, 'failed', message, { ttlMs: 300000 });
+    return baseEvent(env, 'failed', message, { ttl: FAILURE_TTL });
   }
   if (event === 'session_end') {
     return baseEvent(env, 'idle', 'DeepSeek-TUI session ended', { action: 'remove' });

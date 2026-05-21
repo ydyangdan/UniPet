@@ -40,7 +40,7 @@
       },
       "idleDelayMs": {
         "type": "number",
-        "default": 30000
+        "default": 12000
       },
       "perAgent": {
         "type": "boolean",

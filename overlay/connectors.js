@@ -193,7 +193,7 @@ function openClawStatus(options = {}) {
     details: [
       `openclaw command: ${commandFound ? 'found' : 'missing'}`,
       `plugin id: ${OPENCLAW_PLUGIN_ID}`,
-      'plugin state: unknown (use setup/disable/remove to manage it through OpenClaw)',
+      'plugin state: unknown (use agent add/disable/remove to manage it through UniPet)',
     ],
   };
 }

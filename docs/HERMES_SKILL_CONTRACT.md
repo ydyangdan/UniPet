@@ -53,25 +53,25 @@ unipet start
 Send a running event:
 
 ```powershell
-unipet emit running "Processing task" --source hermes --ttl-ms 120000
+unipet state running "Processing task" --source hermes --ttl 2m
 ```
 
 Send a waiting event:
 
 ```powershell
-unipet emit waiting "Waiting for user confirmation" --source hermes
+unipet state waiting "Waiting for user confirmation" --source hermes
 ```
 
 Send a finished/review event:
 
 ```powershell
-unipet emit review "Task complete, please review" --source hermes --ttl-ms 300000
+unipet state review "Task complete, please review" --source hermes --ttl 12s
 ```
 
 Send a failed event:
 
 ```powershell
-unipet emit failed "Task failed: short reason" --source hermes --ttl-ms 300000
+unipet state failed "Task failed: short reason" --source hermes --ttl 20s
 ```
 
 Reset state:
@@ -87,7 +87,7 @@ unipet clear
 3. Emit `waiting` only when the next step truly needs user input.
 4. Emit `review` only when the task is genuinely ready for user review.
 5. Emit `failed` when the task cannot continue or a visible failure needs attention.
-6. Use `--ttl-ms` for transient states so stale status does not linger.
+6. Use `--ttl` for transient states so stale status does not linger.
 7. Keep status messages short and non-sensitive.
 
 ## HTTP Equivalent
@@ -100,6 +100,6 @@ Hermes may use the CLI or HTTP. The plugin uses HTTP directly; the skill fallbac
   "state": "running",
   "message": "Processing task",
   "action": "update",
-  "ttlMs": 120000
+  "ttl": 120000
 }
 ```

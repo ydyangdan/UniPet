@@ -36,8 +36,8 @@ const PET_DISPLAY_SIZE = {
     height: Math.round(208 * PET_RENDER_SCALE),
 };
 const WINDOW_SIZE = {
-    width: Math.max(180, PET_DISPLAY_SIZE.width + 84),
-    height: Math.max(190, PET_DISPLAY_SIZE.height + 86),
+    width: Math.max(280, PET_DISPLAY_SIZE.width + 184),
+    height: Math.max(196, PET_DISPLAY_SIZE.height + 92),
 };
 const PET_TITLE = `UniPet Overlay [${process.pid}]`;
 

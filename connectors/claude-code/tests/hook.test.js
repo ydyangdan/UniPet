@@ -16,12 +16,18 @@ test('maps Claude Code tools and final replies', () => {
 
   const failed = buildEvent('post_tool_use', { tool_name: 'Bash', tool_response: { is_error: true } }, {});
   assert.equal(failed.state, 'failed');
+  assert.equal(failed.ttl, 20000);
+
+  const finished = buildEvent('post_tool_use', { tool_name: 'Read', tool_response: { success: true } }, {});
+  assert.equal(finished.message, 'Finished Read');
+  assert.equal(finished.ttl, 6000);
 
   const review = buildEvent('stop', {
     last_assistant_message: '\u4fee\u590d\u5b8c\u6210\uff0c\u6240\u6709\u6d4b\u8bd5\u5df2\u901a\u8fc7\uff0c\u8bf7\u68c0\u67e5',
   }, {});
   assert.equal(review.state, 'review');
   assert.ok(Array.from(review.message).length <= 20);
+  assert.equal(review.ttl, 12000);
 });
 
 test('supports optional Claude Code per-session source ids', () => {

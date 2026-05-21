@@ -25,7 +25,7 @@ class PetStore {
   purgeExpired() {
     const now = Date.now() / 1000;
     for (const [source, pet] of this.pets.entries()) {
-      if (pet.ttlMs !== null && pet.updatedAt + pet.ttlMs / 1000 <= now) {
+      if (pet.ttl !== null && pet.updatedAt + pet.ttl / 1000 <= now) {
         this.pets.delete(source);
       }
     }

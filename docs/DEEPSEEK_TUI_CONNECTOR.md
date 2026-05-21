@@ -9,7 +9,7 @@ block to the user's DeepSeek-TUI config file.
 For npm installs:
 
 ```bash
-unipet setup deepseek-tui
+unipet agent add deepseek-tui
 ```
 
 For source installs:
@@ -36,7 +36,7 @@ Pass a custom config path when DeepSeek-TUI is launched with
 `DEEPSEEK_CONFIG_PATH` or `--config`:
 
 ```bash
-unipet setup deepseek-tui --config /path/to/config.toml
+unipet agent add deepseek-tui --config /path/to/config.toml
 ```
 
 Restart DeepSeek-TUI after installation so hooks are loaded.

@@ -16,12 +16,12 @@ test('normalizes event shape and clamps ttl', () => {
     source: 'Hermes Agent!',
     state: 'error',
     message: 'x'.repeat(300),
-    ttlMs: 10,
+    ttl: 10,
   });
 
   assert.equal(event.source, 'Hermes-Agent');
   assert.equal(event.state, 'failed');
-  assert.equal(event.ttlMs, 1000);
+  assert.equal(event.ttl, 1000);
   assert.equal(event.message.length, 180);
 });
 

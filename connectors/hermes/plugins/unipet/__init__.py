@@ -41,6 +41,11 @@ HTTP_TIMEOUT = max(0.05, _env_int("UNIPET_HERMES_TIMEOUT_MS", 350) / 1000)
 MIN_INTERVAL = max(0.0, _env_int("UNIPET_HERMES_MIN_INTERVAL_MS", 700) / 1000)
 ERROR_STATUSES = {"error", "failed", "failure", "exception"}
 ERROR_TEXT_PREFIXES = ("error:", "exception:", "traceback ")
+ACTIVE_TTL = 120000
+REVIEW_TTL = 12000
+FAILURE_TTL = 20000
+WAITING_TTL = 120000
+APPROVAL_TTL = 120000
 
 _last_signature: Optional[tuple[str, str, str, str]] = None
 _last_sent_at = 0.0
@@ -62,7 +67,7 @@ def _event(
     message: str,
     *,
     action: str = "update",
-    ttlMs: Optional[int] = None,
+    ttl: Optional[int] = None,
     source: str = SOURCE,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
@@ -71,8 +76,8 @@ def _event(
         "message": _clip(message, state),
         "action": action,
     }
-    if ttlMs is not None:
-        payload["ttlMs"] = ttlMs
+    if ttl is not None:
+        payload["ttl"] = ttl
     return payload
 
 
@@ -200,43 +205,43 @@ def _emit(payload: dict[str, Any]) -> None:
 
 
 def _on_session_start(session_id: str = "", **_: Any) -> None:
-    _emit(_event("running", "Hermes session started", ttlMs=120000))
+    _emit(_event("running", "Hermes session started", ttl=ACTIVE_TTL))
 
 
 def _on_pre_llm_call(**_: Any) -> None:
-    _emit(_event("running", "Hermes is thinking", ttlMs=120000))
+    _emit(_event("running", "Hermes is thinking", ttl=ACTIVE_TTL))
 
 
 def _on_pre_tool_call(tool_name: str = "", **_: Any) -> None:
-    _emit(_event("running", f"Running {_short_tool_name(tool_name)}", ttlMs=120000))
+    _emit(_event("running", f"Running {_short_tool_name(tool_name)}", ttl=ACTIVE_TTL))
 
 
 def _on_post_tool_call(tool_name: str = "", result: Any = None, **_: Any) -> None:
     if _is_error_result(result):
-        _emit(_event("failed", f"{_short_tool_name(tool_name)} failed", ttlMs=300000))
+        _emit(_event("failed", f"{_short_tool_name(tool_name)} failed", ttl=FAILURE_TTL))
 
 
 def _on_pre_approval_request(**_: Any) -> None:
-    _emit(_event("waiting", "Waiting for approval", ttlMs=600000))
+    _emit(_event("waiting", "Waiting for approval", ttl=APPROVAL_TTL))
 
 
 def _on_post_approval_response(choice: str = "", **_: Any) -> None:
     normalized = str(choice or "").strip().lower()
     if normalized in {"deny", "timeout"}:
-        _emit(_event("failed", f"Approval {normalized or 'failed'}", ttlMs=300000))
+        _emit(_event("failed", f"Approval {normalized or 'failed'}", ttl=FAILURE_TTL))
     else:
-        _emit(_event("running", "Approval received", ttlMs=120000))
+        _emit(_event("running", "Approval received", ttl=ACTIVE_TTL))
 
 
 def _on_post_llm_call(**_: Any) -> None:
-    _emit(_event("review", "Done, please review", ttlMs=300000))
+    _emit(_event("review", "Done, please review", ttl=REVIEW_TTL))
 
 
 def _on_session_end(completed: bool = True, interrupted: bool = False, **_: Any) -> None:
     if interrupted:
-        _emit(_event("waiting", "Hermes was interrupted", ttlMs=300000))
+        _emit(_event("waiting", "Hermes was interrupted", ttl=WAITING_TTL))
     elif not completed:
-        _emit(_event("failed", "Hermes task did not complete", ttlMs=300000))
+        _emit(_event("failed", "Hermes task did not complete", ttl=FAILURE_TTL))
 
 
 def _remove_source(**_: Any) -> None:

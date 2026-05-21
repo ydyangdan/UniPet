@@ -7,6 +7,12 @@ const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 8768;
 const DEFAULT_TIMEOUT_MS = 350;
 const DEFAULT_SOURCE = 'codex';
+const READY_TTL = 60000;
+const ACTIVE_TTL = 120000;
+const TOOL_DONE_TTL = 6000;
+const REVIEW_TTL = 12000;
+const FAILURE_TTL = 20000;
+const WAITING_TTL = 120000;
 
 function envBool(value, fallback = false) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -46,7 +52,7 @@ function baseEvent(input, env, state, message, options = {}) {
     state,
     message: clip(message, state, options.messageLimit || 180),
     action: options.action || 'update',
-    ttlMs: options.ttlMs,
+    ttl: options.ttl,
   };
 }
 
@@ -85,26 +91,26 @@ function buildEvent(eventName, input = {}, env = process.env) {
   const event = String(eventName || '').trim().toLowerCase();
 
   if (event === 'session_start') {
-    return baseEvent(input, env, 'idle', 'Codex ready', { ttlMs: 60000 });
+    return baseEvent(input, env, 'idle', 'Codex ready', { ttl: READY_TTL });
   }
   if (event === 'user_prompt_submit') {
-    return baseEvent(input, env, 'running', 'Codex is thinking', { ttlMs: 120000 });
+    return baseEvent(input, env, 'running', 'Codex is thinking', { ttl: ACTIVE_TTL });
   }
   if (event === 'pre_tool_use') {
-    return baseEvent(input, env, 'running', `Running ${toolName(input)}`, { ttlMs: 120000 });
+    return baseEvent(input, env, 'running', `Running ${toolName(input)}`, { ttl: ACTIVE_TTL });
   }
   if (event === 'permission_request') {
-    return baseEvent(input, env, 'waiting', `Codex is waiting for ${toolName(input)}`, { ttlMs: 300000 });
+    return baseEvent(input, env, 'waiting', `Codex is waiting for ${toolName(input)}`, { ttl: WAITING_TTL });
   }
   if (event === 'post_tool_use') {
     if (isFailure(input)) {
-      return baseEvent(input, env, 'failed', `${toolName(input)} failed`, { ttlMs: 300000 });
+      return baseEvent(input, env, 'failed', `${toolName(input)} failed`, { ttl: FAILURE_TTL });
     }
-    return baseEvent(input, env, 'running', `Finished ${toolName(input)}`, { ttlMs: 30000 });
+    return baseEvent(input, env, 'running', `Finished ${toolName(input)}`, { ttl: TOOL_DONE_TTL });
   }
   if (event === 'stop') {
     return baseEvent(input, env, 'review', lastAssistantMessage(input), {
-      ttlMs: 300000,
+      ttl: REVIEW_TTL,
       messageLimit: 20,
     });
   }

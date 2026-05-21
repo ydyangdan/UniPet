@@ -1,4 +1,4 @@
-const PROTOCOL_VERSION = 1;
+const PROTOCOL_VERSION = 2;
 
 const PET_STATES = Object.freeze(['idle', 'running', 'waiting', 'failed', 'review']);
 const PET_ACTIONS = Object.freeze(['update', 'remove', 'clear']);
@@ -46,8 +46,25 @@ function normalizeState(state) {
 
 function normalizeTtl(value) {
   if (value === undefined || value === null || value === '') return null;
-  const ttl = Number.parseInt(value, 10);
-  if (Number.isNaN(ttl)) return null;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return null;
+    return Math.max(1000, Math.min(Math.round(value), 600000));
+  }
+
+  const raw = String(value).trim().toLowerCase();
+  const match = raw.match(/^(\d+(?:\.\d+)?)(ms|s|m|h)?$/);
+  if (!match) return null;
+
+  const amount = Number.parseFloat(match[1]);
+  if (!Number.isFinite(amount)) return null;
+  const unit = match[2] || 'ms';
+  const multiplier = {
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+  }[unit];
+  const ttl = Math.round(amount * multiplier);
   return Math.max(1000, Math.min(ttl, 600000));
 }
 
@@ -77,7 +94,7 @@ function normalizeEvent(payload, now = Date.now) {
     state,
     message: cleanText(payload.message, state, 180),
     action,
-    ttlMs: normalizeTtl(payload.ttlMs),
+    ttl: normalizeTtl(payload.ttl),
     updatedAt: now() / 1000,
   };
 }

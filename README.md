@@ -15,7 +15,7 @@ hooks on localhost, and keeps your agent setup clean.
 ```bash
 npm install -g uni-pet
 unipet start
-unipet setup codex
+unipet agent add codex
 ```
 
 ## Why UniPet
@@ -43,11 +43,11 @@ unipet start
 Connect only the agents you use:
 
 ```bash
-unipet setup codex
-unipet setup claude-code
-unipet setup hermes
-unipet setup openclaw
-unipet setup deepseek-tui
+unipet agent add codex
+unipet agent add claude-code
+unipet agent add hermes
+unipet agent add openclaw
+unipet agent add deepseek-tui
 ```
 
 Update later with:
@@ -60,12 +60,12 @@ npm update -g uni-pet
 
 | Agent | Setup | Integration |
 | --- | --- | --- |
-| Codex | `unipet setup codex` | Codex hooks |
-| Claude Code | `unipet setup claude-code` | Claude Code hooks |
-| Hermes | `unipet setup hermes` | Hermes plugin + skill |
-| OpenClaw | `unipet setup openclaw` | OpenClaw plugin |
-| DeepSeek-TUI | `unipet setup deepseek-tui` | lifecycle hooks |
-| Custom agents | `unipet emit ...` or HTTP | localhost bridge |
+| Codex | `unipet agent add codex` | Codex hooks |
+| Claude Code | `unipet agent add claude-code` | Claude Code hooks |
+| Hermes | `unipet agent add hermes` | Hermes plugin + skill |
+| OpenClaw | `unipet agent add openclaw` | OpenClaw plugin |
+| DeepSeek-TUI | `unipet agent add deepseek-tui` | lifecycle hooks |
+| Custom agents | `unipet state ...` or HTTP | localhost bridge |
 
 ## Daily Use
 
@@ -81,8 +81,8 @@ unipet stop
 Send a manual test event:
 
 ```bash
-unipet emit running "Running tests" --source my-agent --ttl-ms 120000
-unipet emit review "Ready for review" --source my-agent --ttl-ms 300000
+unipet state running "Running tests"
+unipet state review "Ready for review"
 unipet clear
 ```
 
@@ -98,10 +98,10 @@ WS    ws://127.0.0.1:8769/ws
 Browse and install online pets:
 
 ```bash
-unipet market list
-unipet market search cat
-unipet market info anby
-unipet market install anby --use
+unipet pet search
+unipet pet search cat
+unipet pet info anby
+unipet pet install anby --use
 ```
 
 Manage local pets:
@@ -115,16 +115,16 @@ unipet pet remove anby
 
 Installed pets and user config live under `~/.unipet`.
 
-## Connector Management
+## Agent Management
 
-The `setup` shortcuts are the friendly daily entry point. Use `connector` when
-you need full lifecycle control:
+Use `agent` to add, inspect, disable, or remove UniPet integrations:
 
 ```bash
-unipet connector list
-unipet connector status
-unipet connector disable codex
-unipet connector remove codex
+unipet agent list
+unipet agent status
+unipet agent add codex
+unipet agent disable codex
+unipet agent remove codex
 ```
 
 You can replace `codex` with `claude-code`, `hermes`, `openclaw`,
@@ -140,7 +140,7 @@ Agent hook/plugin
 ```
 
 Connectors translate agent lifecycle events into a small local event payload:
-`source`, `state`, `message`, `action`, and `ttlMs`. The renderer then maps
+`source`, `state`, `message`, `action`, and `ttl`. The renderer then maps
 those events into Codex Pet-style states, bubbles, and small companion motions.
 
 ## Requirements

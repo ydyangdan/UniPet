@@ -6,7 +6,7 @@ DeepSeek-TUI, shell scripts, or future agents all send the same event shape.
 
 ## Version
 
-Current protocol version: `1`.
+Current protocol version: `2`.
 
 The bridge keeps the version in code as `PROTOCOL_VERSION` and keeps the HTTP
 payload small. Connectors do not need to send a protocol field.
@@ -26,7 +26,7 @@ Content-Type: application/json
   "state": "running",
   "message": "Running tests",
   "action": "update",
-  "ttlMs": 120000
+  "ttl": 120000
 }
 ```
 
@@ -37,7 +37,9 @@ Fields:
 - `state`: one of `idle`, `running`, `waiting`, `failed`, `review`.
 - `message`: short human text for the bubble and behavior hints.
 - `action`: `update`, `remove`, or `clear`; defaults to `update`.
-- `ttlMs`: optional expiry in milliseconds, clamped by the bridge.
+- `ttl`: optional expiry. Numbers are milliseconds; strings may use `ms`, `s`,
+  `m`, or `h`, such as `1500ms`, `30s`, or `2m`. Values are clamped by the
+  bridge.
 
 Accepted state aliases include `thinking`, `planning`, `pending`, `error`,
 `success`, and `done`. The bridge normalizes them into the five canonical

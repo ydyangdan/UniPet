@@ -10,7 +10,7 @@ test('maps DeepSeek-TUI message submission to running state', () => {
   assert.equal(event.source, 'deepseek-tui');
   assert.equal(event.state, 'running');
   assert.equal(event.message, 'DeepSeek-TUI is thinking');
-  assert.equal(event.ttlMs, 120000);
+  assert.equal(event.ttl, 120000);
 });
 
 test('supports one UniPet source per DeepSeek-TUI session', () => {
@@ -36,12 +36,14 @@ test('maps tool failures and errors', () => {
   });
   assert.equal(toolFailed.state, 'failed');
   assert.equal(toolFailed.message, 'exec_shell failed');
+  assert.equal(toolFailed.ttl, 20000);
 
   const error = buildEvent('on_error', {
     DEEPSEEK_ERROR: 'Authentication failed',
   });
   assert.equal(error.state, 'failed');
   assert.equal(error.message, 'Authentication failed');
+  assert.equal(error.ttl, 20000);
 });
 
 test('maps session end to source removal', () => {

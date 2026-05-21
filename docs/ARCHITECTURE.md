@@ -168,7 +168,7 @@ overlay/main.js bridge
 Manual or script path:
 
 ```text
-unipet emit running "Hermes is working" --source hermes
+unipet state running "Hermes is working" --source hermes
         |
         v
 overlay/cli.js
@@ -221,7 +221,7 @@ connected AI agent.
 ## Pet Asset Flow
 
 ```text
-unipet market install anby --use
+unipet pet install anby --use
         |
         v
 overlay/market.js
@@ -252,7 +252,7 @@ The optional environment variable `UNIPET_RENDER_SCALE` can tune this for testin
 ## Design Notes
 
 - Local-first: bind to `127.0.0.1`.
-- Low configuration: `unipet emit` and the Hermes plugin can auto-start the runtime when possible.
+- Low configuration: `unipet state` and the Hermes plugin can auto-start the runtime when possible.
 - Minimal runtime stack: Node.js, Electron, and `ws`.
 - Market import uses Node built-ins only; no zip extraction or image conversion is needed for the first version.
 - Zero-intrusion Hermes integration: install plugin/skill under Hermes home, do not edit Hermes core.

@@ -29,7 +29,7 @@ body:active {
     position: relative;
     width: var(--pet-width);
     height: var(--pet-height);
-    margin: 58px auto 0;
+    margin: 64px auto 0;
     -webkit-app-region: no-drag;
     transform-origin: 50% 100%;
     will-change: transform;
@@ -61,27 +61,27 @@ body:active {
 }
 
 #pet-container.motion-idle {
-    animation: pet-breathe 3.2s ease-in-out infinite;
+    animation: pet-breathe 9s ease-in-out infinite;
 }
 
 #pet-container.motion-work {
-    animation: pet-work-bob 0.56s ease-in-out infinite;
+    animation: pet-work-bob 1.08s ease-in-out infinite;
 }
 
 #pet-container.motion-scan {
-    animation: pet-scan-bob 0.9s ease-in-out infinite;
+    animation: pet-scan-bob 1.35s ease-in-out infinite;
 }
 
 #pet-container.motion-think {
-    animation: pet-think-sway 1.8s ease-in-out infinite;
+    animation: pet-think-sway 2.2s ease-in-out infinite;
 }
 
 #pet-container.motion-wait {
-    animation: pet-wait-breathe 4.2s ease-in-out infinite;
+    animation: pet-wait-breathe 5.2s ease-in-out infinite;
 }
 
 #pet-container.motion-alert {
-    animation: pet-alert-pulse 0.66s ease-in-out infinite;
+    animation: pet-alert-pulse 1s ease-in-out infinite;
 }
 
 #pet-container.effect-bounce {
@@ -136,30 +136,60 @@ body:active {
 
 #pet-bubble {
     position: absolute;
-    top: -46px;
+    top: -52px;
     left: 50%;
     transform: translateX(-50%);
-    max-width: 180px;
-    padding: 6px 10px;
-    background: rgba(0, 0, 0, 0.75);
-    color: #fff;
+    width: max-content;
+    min-width: 92px;
+    max-width: 218px;
+    padding: 7px 10px 8px;
+    background: rgba(255, 255, 255, 0.94);
+    color: rgba(17, 24, 31, 0.9);
     font-family: "Segoe UI", sans-serif;
-    font-size: 11px;
-    line-height: 1.4;
-    border-radius: 8px;
-    white-space: nowrap;
+    font-size: 12.5px;
+    line-height: 1.36;
+    text-align: left;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 14px;
+    box-shadow:
+        0 12px 26px rgba(15, 23, 42, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    white-space: normal;
     overflow: hidden;
-    text-overflow: ellipsis;
-    transition: opacity 0.3s;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+    transition: opacity 0.32s ease, transform 0.32s ease;
+}
+
+#pet-bubble::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    width: 10px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.94);
+    border-right: 1px solid rgba(15, 23, 42, 0.08);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    transform: translateX(-50%) rotate(45deg);
 }
 
 #pet-bubble.hidden {
     opacity: 0;
+    transform: translateX(-50%) translateY(4px);
     pointer-events: none;
 }
 
 #bubble-text {
-    display: block;
+    position: relative;
+    z-index: 1;
+    display: -webkit-box;
+    max-width: 198px;
+    overflow: hidden;
+    color: rgba(31, 41, 55, 0.9);
+    text-overflow: ellipsis;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
 #pet-status {

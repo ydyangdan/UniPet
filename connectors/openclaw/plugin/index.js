@@ -4,8 +4,13 @@ const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 8768;
 const DEFAULT_TIMEOUT_MS = 350;
 const DEFAULT_BUBBLE_CHARS = 20;
-const DEFAULT_IDLE_DELAY_MS = 30000;
+const DEFAULT_IDLE_DELAY_MS = 12000;
 const DEDUPE_WINDOW_MS = 700;
+const ACTIVE_TTL = 120000;
+const TOOL_DONE_TTL = 6000;
+const REVIEW_TTL = 12000;
+const FAILURE_TTL = 20000;
+const WAITING_TTL = 120000;
 
 let lastEmitKey = '';
 let lastEmitAt = 0;
@@ -191,7 +196,7 @@ async function emit(api, event, ctx, state, message, options = {}) {
     state,
     message: message || state,
     action: options.action || 'update',
-    ttlMs: options.ttlMs || 120000,
+    ttl: options.ttl || 120000,
   };
 
   if (payload.action !== 'remove') clearCleanupTimer(payload.source);
@@ -215,7 +220,7 @@ function removeSource(api, event, ctx, message = 'OpenClaw session ended') {
   clearCleanupTimer(sourceInfo(event, ctx, cfg).source);
   safeEmit(api, event, ctx, 'idle', message, {
     action: 'remove',
-    ttlMs: 1000,
+    ttl: 1000,
   });
 }
 
@@ -259,46 +264,46 @@ const plugin = {
   description: 'Mirrors OpenClaw conversation and agent lifecycle events to UniPet.',
   register(api) {
     observe(api, 'message_received', (event, ctx) => {
-      safeEmit(api, event, ctx, 'running', 'OpenClaw received a message', { ttlMs: 120000 });
+      safeEmit(api, event, ctx, 'running', 'OpenClaw received a message', { ttl: ACTIVE_TTL });
     });
 
     observe(api, 'before_prompt_build', (event, ctx) => {
-      safeEmit(api, event, ctx, 'running', 'OpenClaw is thinking', { ttlMs: 120000 });
+      safeEmit(api, event, ctx, 'running', 'OpenClaw is thinking', { ttl: ACTIVE_TTL });
     });
 
     observe(api, 'before_tool_call', (event, ctx) => {
-      safeEmit(api, event, ctx, 'running', `Running tool: ${toolName(event)}`, { ttlMs: 120000 });
+      safeEmit(api, event, ctx, 'running', `Running tool: ${toolName(event)}`, { ttl: ACTIVE_TTL });
     });
 
     observe(api, 'after_tool_call', (event, ctx) => {
       if (isFailure(event)) {
-        safeEmit(api, event, ctx, 'failed', `Tool failed: ${toolName(event)}`, { ttlMs: 300000 });
+        safeEmit(api, event, ctx, 'failed', `Tool failed: ${toolName(event)}`, { ttl: FAILURE_TTL });
         return;
       }
-      safeEmit(api, event, ctx, 'running', `Tool finished: ${toolName(event)}`, { ttlMs: 60000 });
+      safeEmit(api, event, ctx, 'running', `Tool finished: ${toolName(event)}`, { ttl: TOOL_DONE_TTL });
     });
 
     observe(api, 'message_sending', (event, ctx) => {
-      safeEmit(api, event, ctx, 'review', outgoingBubble(api, event), { ttlMs: 300000 });
+      safeEmit(api, event, ctx, 'review', outgoingBubble(api, event), { ttl: REVIEW_TTL });
     });
 
     observe(api, 'message_processed', (event, ctx) => {
-      safeEmit(api, event, ctx, 'review', outgoingBubble(api, event), { ttlMs: 300000 });
+      safeEmit(api, event, ctx, 'review', outgoingBubble(api, event), { ttl: REVIEW_TTL });
     });
 
     observe(api, 'message_sent', (event, ctx) => {
       if (isFailure(event)) {
-        safeEmit(api, event, ctx, 'failed', 'OpenClaw reply failed to send', { ttlMs: 300000 });
+        safeEmit(api, event, ctx, 'failed', 'OpenClaw reply failed to send', { ttl: FAILURE_TTL });
       }
     });
 
     observe(api, 'approval_required', (event, ctx) => {
-      safeEmit(api, event, ctx, 'waiting', 'OpenClaw is waiting for approval', { ttlMs: 300000 });
+      safeEmit(api, event, ctx, 'waiting', 'OpenClaw is waiting for approval', { ttl: WAITING_TTL });
     });
 
     observe(api, 'agent_end', (event, ctx) => {
       if (isFailure(event)) {
-        safeEmit(api, event, ctx, 'failed', 'OpenClaw turn failed', { ttlMs: 300000 });
+        safeEmit(api, event, ctx, 'failed', 'OpenClaw turn failed', { ttl: FAILURE_TTL });
         return;
       }
       scheduleSourceRemoval(api, event, ctx);

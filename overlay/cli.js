@@ -8,6 +8,7 @@ const { spawn, spawnSync } = require('child_process');
 const connectorLifecycle = require('./connectors');
 const market = require('./market');
 const pets = require('./pets');
+const { PET_STATES, normalizeState, normalizeTtl } = require('./protocol');
 
 console.log = (...args) => {
   fs.writeSync(1, `${args.join(' ')}\n`);
@@ -23,6 +24,13 @@ const STARTUP_TIMEOUT_MS = 15000;
 const STARTUP_POLL_MS = 250;
 const STOP_TIMEOUT_MS = 3000;
 const KILL_TIMEOUT_MS = 1500;
+const STATE_DEFAULT_TTL = Object.freeze({
+  idle: null,
+  running: 120000,
+  waiting: 120000,
+  failed: 20000,
+  review: 12000,
+});
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -472,12 +480,22 @@ async function cmdStop() {
   return canRemoveRuntime ? 0 : 1;
 }
 
-async function cmdEmit(args) {
+async function cmdState(args) {
   const { options, rest } = parseOptions(args);
   const [state, ...messageParts] = rest;
   const message = messageParts.join(' ');
   if (!state || !message) {
-    console.error('Usage: unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--ttl-ms n]');
+    console.error('Usage: unipet state <idle|running|waiting|failed|review> <message> [--source id] [--ttl duration]');
+    return 1;
+  }
+  const normalizedState = normalizeState(state);
+  if (!PET_STATES.includes(normalizedState) || (normalizedState === 'idle' && String(state).toLowerCase() !== 'idle')) {
+    console.error(`State must be one of: ${PET_STATES.join(', ')}`);
+    return 1;
+  }
+  const ttl = options.ttl ? normalizeTtl(options.ttl) : STATE_DEFAULT_TTL[normalizedState];
+  if (options.ttl && ttl === null) {
+    console.error('TTL must look like 120000, 30s, 2m, 1h, or 1500ms.');
     return 1;
   }
   const runtime = await ensureRunning();
@@ -487,13 +505,13 @@ async function cmdEmit(args) {
   }
   const payload = {
     source: options.source || 'local-unipet',
-    state,
+    state: normalizedState,
     message,
     action: 'update',
   };
-  if (options.ttlMs) payload.ttlMs = Number.parseInt(options.ttlMs, 10);
+  if (ttl !== null) payload.ttl = ttl;
   const result = await requestJson('POST', runtime.port || DEFAULT_PORT, '/api/pet/events', payload, runtime.host || DEFAULT_HOST);
-  console.log(`Emitted: ${state} - ${message}`);
+  console.log(`State: ${normalizedState} - ${message}`);
   console.log(`  active state -> ${result.activeState || '?'}`);
   return 0;
 }
@@ -549,7 +567,7 @@ function formatLocalPet(pet, currentId) {
 }
 
 async function cmdPet(args) {
-  const { rest } = parseOptions(args);
+  const { options, rest } = parseOptions(args);
   const [subcommand, id] = rest;
   if (!subcommand || subcommand === 'list') {
     const currentId = pets.currentPetId();
@@ -564,6 +582,51 @@ async function cmdPet(args) {
     console.log(`Current pet: ${pet.id} (${pet.displayName})`);
     console.log(`  source: ${pet.builtin ? 'builtin' : pet.source}`);
     console.log(`  path: ${pet.dir}`);
+    return 0;
+  }
+  if (subcommand === 'search') {
+    const query = rest.slice(1).join(' ').trim();
+    const page = await market.listMarketPets({
+      query,
+      page: options.page,
+      limit: options.limit || options.pageSize,
+      sort: options.sort || 'new',
+      content: options.content || 'safe',
+    });
+    console.log(market.formatMarketPage(page));
+    return 0;
+  }
+  if (subcommand === 'info') {
+    const identifier = rest.slice(1).join(' ').trim();
+    if (!identifier) {
+      console.error('Usage: unipet pet info <pet-id-or-url>');
+      return 1;
+    }
+    const pet = await market.fetchMarketPet(identifier);
+    console.log(market.formatMarketPet(pet));
+    return 0;
+  }
+  if (subcommand === 'install') {
+    const identifier = rest.slice(1).join(' ').trim();
+    if (!identifier) {
+      console.error('Usage: unipet pet install <pet-id-or-url> [--use] [--as local-id]');
+      return 1;
+    }
+    const result = await market.installMarketPet(identifier, { localId: options.as || '' });
+    console.log(`Installed pet: ${result.installed.id} (${result.installed.displayName})`);
+    console.log(`  source: ${result.pet.id} from Codex Pet Share`);
+    console.log(`  path: ${result.installed.dir}`);
+    if (options.use) {
+      pets.setCurrentPet(result.installed.id);
+      let hotReloaded = false;
+      try {
+        hotReloaded = await notifyPetChangeIfRunning(result.installed.id);
+      } catch (err) {
+        console.error(`Warning: installed and selected pet, but running overlay was not updated: ${err.message}`);
+      }
+      console.log(`  current pet -> ${result.installed.id}`);
+      console.log(hotReloaded ? '  overlay updated' : '  start UniPet to see it');
+    }
     return 0;
   }
   if (subcommand === 'use') {
@@ -600,152 +663,64 @@ async function cmdPet(args) {
     return 0;
   }
   console.error(`Unknown pet command: ${subcommand}`);
-  console.error('Usage: unipet pet <list|current|use|remove>');
+  console.error('Usage: unipet pet <list|current|search|info|install|use|remove>');
   return 1;
 }
 
-async function cmdMarket(args) {
-  const { options, rest } = parseOptions(args);
-  const [subcommand, ...terms] = rest;
-  if (!subcommand || subcommand === 'list') {
-    const page = await market.listMarketPets({
-      page: options.page,
-      limit: options.limit || options.pageSize,
-      sort: options.sort || 'new',
-      content: options.content || 'safe',
-    });
-    console.log(market.formatMarketPage(page));
-    return 0;
-  }
-  if (subcommand === 'search') {
-    const query = terms.join(' ').trim();
-    if (!query) {
-      console.error('Usage: unipet market search <query>');
-      return 1;
-    }
-    const page = await market.listMarketPets({
-      query,
-      page: options.page,
-      limit: options.limit || options.pageSize,
-      sort: options.sort || 'new',
-      content: options.content || 'safe',
-    });
-    console.log(market.formatMarketPage(page));
-    return 0;
-  }
-  if (subcommand === 'info') {
-    const identifier = terms.join(' ').trim();
-    if (!identifier) {
-      console.error('Usage: unipet market info <pet-id-or-url>');
-      return 1;
-    }
-    const pet = await market.fetchMarketPet(identifier);
-    console.log(market.formatMarketPet(pet));
-    return 0;
-  }
-  if (subcommand === 'install') {
-    const identifier = terms.join(' ').trim();
-    if (!identifier) {
-      console.error('Usage: unipet market install <pet-id-or-url> [--use] [--as local-id]');
-      return 1;
-    }
-    const result = await market.installMarketPet(identifier, { localId: options.as || '' });
-    console.log(`Installed pet: ${result.installed.id} (${result.installed.displayName})`);
-    console.log(`  source: ${result.pet.id} from Codex Pet Share`);
-    console.log(`  path: ${result.installed.dir}`);
-    if (options.use) {
-      pets.setCurrentPet(result.installed.id);
-      let hotReloaded = false;
-      try {
-        hotReloaded = await notifyPetChangeIfRunning(result.installed.id);
-      } catch (err) {
-        console.error(`Warning: installed and selected pet, but running overlay was not updated: ${err.message}`);
-      }
-      console.log(`  current pet -> ${result.installed.id}`);
-      console.log(hotReloaded ? '  overlay updated' : '  start UniPet to see it');
-    }
-    return 0;
-  }
-  console.error(`Unknown market command: ${subcommand}`);
-  console.error('Usage: unipet market <list|search|info|install>');
-  return 1;
-}
-
-function setupUsage() {
+function agentUsage() {
   return `Usage:
-  unipet setup hermes [--start] [--hermes-home path]
-  unipet setup openclaw [--start] [--copy] [--no-enable] [--skip-validate]
-  unipet setup deepseek-tui [--start] [--config path]
-  unipet setup codex [--start] [--config path]
-  unipet setup claude-code [--start] [--settings path]
-  unipet setup all [--start]
+  unipet agent list
+  unipet agent status [hermes|openclaw|deepseek-tui|codex|claude-code|all]
+  unipet agent add <hermes|openclaw|deepseek-tui|codex|claude-code|all> [--start]
+  unipet agent disable <hermes|openclaw|deepseek-tui|codex|claude-code|all>
+  unipet agent remove <hermes|openclaw|deepseek-tui|codex|claude-code|all>
 `;
 }
 
-async function cmdSetup(args) {
-  const { options, rest } = parseOptions(args);
-  const [target] = rest;
-  const wantsHelp = options.help || rest.includes('--help') || rest.includes('-h');
-  if (target === 'help' || wantsHelp) {
-    console.log(setupUsage());
-    return 0;
-  }
-  if (!target) {
-    console.log(setupUsage());
-    return 1;
-  }
-  try {
-    return setupConnectorTarget(target, options);
-  } catch (err) {
-    console.error(err.message);
-    console.error('Usage: unipet setup <hermes|openclaw|deepseek-tui|codex|claude-code|all>');
-    return 1;
-  }
-}
-
-async function cmdConnector(args) {
+async function cmdAgent(args) {
   const [rawSubcommand, ...remaining] = args;
-  const subcommand = rawSubcommand || 'status';
+  const subcommand = rawSubcommand || 'help';
   if (subcommand === 'help' || subcommand === '--help' || subcommand === '-h') {
-    console.log(`Usage:
-  unipet connector list
-  unipet connector status [hermes|openclaw|deepseek-tui|codex|claude-code|all]
-  unipet connector setup <hermes|openclaw|deepseek-tui|codex|claude-code|all>
-  unipet connector disable <hermes|openclaw|deepseek-tui|codex|claude-code|all>
-  unipet connector remove <hermes|openclaw|deepseek-tui|codex|claude-code|all>
-
-Shortcuts:
-  unipet setup hermes
-  unipet setup openclaw
-  unipet setup deepseek-tui
-  unipet setup codex
-  unipet setup claude-code
-`);
+    console.log(agentUsage());
     return 0;
-  }
-
-  if (subcommand === 'setup' || subcommand === 'install' || subcommand === 'enable') {
-    return cmdSetup(remaining);
   }
 
   const { options, rest } = parseOptions(remaining);
-  const [target = 'all'] = rest;
 
   try {
     if (subcommand === 'list') {
-      console.log('Connectors:');
+      console.log('Agents:');
       for (const connector of connectorLifecycle.connectorList()) {
         console.log(`  ${connector.id.padEnd(14)} ${connector.description}`);
       }
       return 0;
     }
-    if (subcommand === 'status' || subcommand === 'doctor') {
+    if (subcommand === 'status') {
+      const [target = 'all'] = rest;
       return connectorLifecycle.printStatus(target, options);
     }
+    if (subcommand === 'add') {
+      const [target] = rest;
+      if (!target) {
+        console.error('Usage: unipet agent add <hermes|openclaw|deepseek-tui|codex|claude-code|all> [--start]');
+        return 1;
+      }
+      return setupConnectorTarget(target, options);
+    }
     if (subcommand === 'disable') {
+      const [target] = rest;
+      if (!target) {
+        console.error('Usage: unipet agent disable <hermes|openclaw|deepseek-tui|codex|claude-code|all>');
+        return 1;
+      }
       return connectorLifecycle.disableConnector(target, options);
     }
-    if (subcommand === 'remove' || subcommand === 'uninstall') {
+    if (subcommand === 'remove') {
+      const [target] = rest;
+      if (!target) {
+        console.error('Usage: unipet agent remove <hermes|openclaw|deepseek-tui|codex|claude-code|all>');
+        return 1;
+      }
       return connectorLifecycle.removeConnector(target, options);
     }
   } catch (err) {
@@ -753,8 +728,8 @@ Shortcuts:
     return 1;
   }
 
-  console.error(`Unknown connector command: ${subcommand}`);
-  console.error('Usage: unipet connector <list|status|setup|disable|remove>');
+  console.error(`Unknown agent command: ${subcommand}`);
+  console.error('Usage: unipet agent <list|status|add|disable|remove>');
   return 1;
 }
 
@@ -790,11 +765,9 @@ Commands:
   unipet doctor
   unipet stop
   unipet clear
-  unipet emit <idle|running|waiting|failed|review> <message> [--source id] [--ttl-ms n]
-  unipet market <list|search|info|install>
-  unipet pet <list|current|use|remove>
-  unipet setup <hermes|openclaw|deepseek-tui|codex|claude-code|all>
-  unipet connector <list|status|setup|disable|remove>
+  unipet state <idle|running|waiting|failed|review> <message> [--source id] [--ttl duration]
+  unipet agent <list|status|add|disable|remove>
+  unipet pet <list|current|search|info|install|use|remove>
 `);
 }
 
@@ -817,28 +790,20 @@ async function main() {
       process.exitCode = await cmdDoctor();
       return;
     }
-    if (command === 'emit') {
-      process.exitCode = await cmdEmit(args);
+    if (command === 'state') {
+      process.exitCode = await cmdState(args);
       return;
     }
     if (command === 'clear') {
       process.exitCode = await cmdClear(args);
       return;
     }
-    if (command === 'market') {
-      process.exitCode = await cmdMarket(args);
-      return;
-    }
     if (command === 'pet') {
       process.exitCode = await cmdPet(args);
       return;
     }
-    if (command === 'setup') {
-      process.exitCode = await cmdSetup(args);
-      return;
-    }
-    if (command === 'connector') {
-      process.exitCode = await cmdConnector(args);
+    if (command === 'agent') {
+      process.exitCode = await cmdAgent(args);
       return;
     }
     if (command === 'hook') {
