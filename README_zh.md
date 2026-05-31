@@ -3,6 +3,8 @@
 [English README](README.md)
 
 [![npm](https://img.shields.io/npm/v/uni-pet?color=0ea5e9)](https://www.npmjs.com/package/uni-pet)
+[![npm downloads](https://img.shields.io/npm/dm/uni-pet)](https://www.npmjs.com/package/uni-pet)
+[![CI](https://github.com/ydyangdan/UniPet/actions/workflows/ci.yml/badge.svg)](https://github.com/ydyangdan/UniPet/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 UniPet 是一款面向 AI 编程助手的通用桌面宠物。
@@ -71,6 +73,16 @@ unipet agent status
 ```bash
 npm update -g uni-pet
 ```
+
+干净卸载：
+
+```bash
+unipet agent remove all
+unipet stop
+npm uninstall -g uni-pet
+```
+
+用户配置和已安装宠物存放在 `~/.unipet`。
 
 ## 支持的 Agent
 
@@ -185,11 +197,19 @@ Codex Pet 风格的状态、气泡和桌面宠物动作。
 UniPet 可以在 Windows、macOS、Linux、Unix 或 WSL 上运行。Agent 连接器都是
 可选的，只需要连接你实际使用的 Agent。
 
+## 已知限制
+
+- UniPet 目前使用 Electron 实现桌面浮层，更轻量的原生外壳属于后续方向。
+- WSL 需要可用的 Linux GUI 显示环境。
+- Agent 连接器依赖各 Agent 自身提供的 hook 或 plugin 能力。
+- Hermes 连接器运行在 Hermes 的 Python plugin 环境中，但 UniPet 自身不要求 Python。
+
 ## 开发者
 
 ```bash
 npm install
 npm run check
+npm run smoke:install
 npm start
 ```
 
@@ -203,6 +223,7 @@ Claude Code 的连接器测试。
 - [连接器](docs/CONNECTORS.md)
 - [自定义 Agent 接入](docs/CUSTOM_AGENT.md)
 - [宠物格式](docs/PET_FORMAT.md)
+- [Release Notes](docs/releases/v0.1.4.zh.md)
 - [路线图](ROADMAP.md)
 - [贡献指南](CONTRIBUTING.md)
 
@@ -248,6 +269,7 @@ UniPet/
 - [连接器](docs/CONNECTORS.md)
 - [自定义 Agent 接入](docs/CUSTOM_AGENT.md)
 - [宠物格式](docs/PET_FORMAT.md)
+- [Release Notes](docs/releases/v0.1.4.zh.md)
 - [更新记录](CHANGELOG.md)
 - [路线图](ROADMAP.md)
 

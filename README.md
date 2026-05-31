@@ -3,6 +3,8 @@
 [中文文档](README_zh.md)
 
 [![npm](https://img.shields.io/npm/v/uni-pet?color=0ea5e9)](https://www.npmjs.com/package/uni-pet)
+[![npm downloads](https://img.shields.io/npm/dm/uni-pet)](https://www.npmjs.com/package/uni-pet)
+[![CI](https://github.com/ydyangdan/UniPet/actions/workflows/ci.yml/badge.svg)](https://github.com/ydyangdan/UniPet/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 UniPet is a Universal Desktop Pet for AI coding agents.
@@ -72,6 +74,16 @@ Update later with:
 ```bash
 npm update -g uni-pet
 ```
+
+Remove UniPet cleanly:
+
+```bash
+unipet agent remove all
+unipet stop
+npm uninstall -g uni-pet
+```
+
+User config and installed pets live under `~/.unipet`.
 
 ## Supported Agents
 
@@ -186,11 +198,21 @@ those events into Codex Pet-style states, bubbles, and small companion motions.
 UniPet can run on Windows, macOS, Linux, Unix, or WSL. Agent integrations are
 optional; connect only the agents you actually use.
 
+## Known Limitations
+
+- UniPet currently uses Electron for the desktop overlay; a lighter native shell
+  is future work.
+- WSL needs a working Linux GUI display environment.
+- Agent connectors depend on each agent's hook or plugin support.
+- The Hermes connector runs inside Hermes' Python plugin environment, but
+  UniPet itself does not require Python.
+
 ## For Developers
 
 ```bash
 npm install
 npm run check
+npm run smoke:install
 npm start
 ```
 
@@ -204,6 +226,7 @@ Useful project files:
 - [Connectors](docs/CONNECTORS.md)
 - [Custom Agent Integration](docs/CUSTOM_AGENT.md)
 - [Pet Format](docs/PET_FORMAT.md)
+- [Release Notes](docs/releases/v0.1.4.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)
 
@@ -251,6 +274,7 @@ UniPet/
 - [Connectors](docs/CONNECTORS.md)
 - [Custom Agent Integration](docs/CUSTOM_AGENT.md)
 - [Pet Format](docs/PET_FORMAT.md)
+- [Release Notes](docs/releases/v0.1.4.md)
 - [Changelog](CHANGELOG.md)
 - [Roadmap](ROADMAP.md)
 

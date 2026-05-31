@@ -40,7 +40,8 @@
     "start": "electron overlay",
     "check": "npm --prefix overlay run check && node scripts/run-tests.js connectors/openclaw/plugin/tests connectors/deepseek-tui/tests connectors/codex/tests connectors/claude-code/tests",
     "test": "npm run check",
-    "pack:dry": "npm pack --dry-run"
+    "pack:dry": "npm pack --dry-run",
+    "smoke:install": "node scripts/smoke-install.js"
   },
   "files": [
     "README.md",
@@ -78,7 +79,7 @@
     "connectors/claude-code/install.ps1",
     "connectors/claude-code/install.sh",
     "connectors/claude-code/hook.js",
-    "docs/*.md",
+    "docs/**/*.md",
     "examples/**"
   ],
   "dependencies": {

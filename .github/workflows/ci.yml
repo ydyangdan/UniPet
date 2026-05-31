@@ -39,3 +39,6 @@ jobs:
 
       - name: Verify npm package contents
         run: npm run pack:dry
+
+      - name: Smoke test npm install
+        run: npm run smoke:install
