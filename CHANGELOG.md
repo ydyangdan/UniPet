@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.4 - 2026-05-31
 
 - Added GitHub Actions CI across Windows, macOS, and Linux.
 - Added GitHub issue templates, pull request template, contribution guide, and
