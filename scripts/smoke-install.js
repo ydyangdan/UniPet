@@ -21,6 +21,14 @@ function runNpm(args, options = {}) {
   return run(npmCommand, [...npmPrefixArgs, ...args], options);
 }
 
+function installedCliPath(prefix) {
+  const candidates = [
+    path.join(prefix, 'node_modules', 'uni-pet', 'overlay', 'cli.js'),
+    path.join(prefix, 'lib', 'node_modules', 'uni-pet', 'overlay', 'cli.js'),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+}
+
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'unipet-smoke-'));
 let tarball = '';
 
@@ -41,7 +49,7 @@ try {
     '--fund=false',
   ], { stdio: 'inherit' });
 
-  const cliPath = path.join(prefix, 'node_modules', 'uni-pet', 'overlay', 'cli.js');
+  const cliPath = installedCliPath(prefix);
   const help = run(process.execPath, [cliPath, '--help']);
   if (!help.includes('unipet start') || !help.includes('unipet agent')) {
     throw new Error('installed UniPet CLI did not print the expected help output');
