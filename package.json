@@ -38,7 +38,7 @@
   },
   "scripts": {
     "start": "electron overlay",
-    "check": "npm --prefix overlay run check && node --test connectors/openclaw/plugin/tests/*.test.js && node --test connectors/deepseek-tui/tests/*.test.js && node --test connectors/codex/tests/*.test.js && node --test connectors/claude-code/tests/*.test.js",
+    "check": "npm --prefix overlay run check && node scripts/run-tests.js connectors/openclaw/plugin/tests connectors/deepseek-tui/tests connectors/codex/tests connectors/claude-code/tests",
     "test": "npm run check",
     "pack:dry": "npm pack --dry-run"
   },

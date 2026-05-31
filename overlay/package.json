@@ -11,8 +11,8 @@
     "start": "electron .",
     "dev": "electron . --debug",
     "unipet": "node ./cli.js",
-    "check": "node --check main.js && node --check renderer.js && node --check behavior.js && node --check life/interpreter.js && node --check life/planner.js && node --check renderers/spritesheet/adapter.js && node --check preload.js && node --check cli.js && node --check connectors.js && node --check protocol.js && node --check core.js && node --test tests/*.test.js",
-    "test": "node --test tests/*.test.js"
+    "check": "node --check main.js && node --check renderer.js && node --check behavior.js && node --check life/interpreter.js && node --check life/planner.js && node --check renderers/spritesheet/adapter.js && node --check preload.js && node --check cli.js && node --check connectors.js && node --check protocol.js && node --check core.js && node ../scripts/run-tests.js tests",
+    "test": "node ../scripts/run-tests.js tests"
   },
   "dependencies": {
     "electron": "^33.0.0",
