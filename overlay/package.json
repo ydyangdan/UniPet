@@ -15,7 +15,7 @@
     "test": "node ../scripts/run-tests.js tests"
   },
   "dependencies": {
-    "electron": "^33.0.0",
-    "ws": "^8.0.0"
+    "electron": "^39.8.10",
+    "ws": "^8.21.0"
   }
 }
