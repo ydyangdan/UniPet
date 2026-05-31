@@ -100,9 +100,22 @@ body:active {
     animation: pet-blink 0.42s ease-in-out 1;
 }
 
+#pet-container.effect-sleepy #pet-sprite {
+    animation: pet-sleepy 1.8s ease-in-out 1;
+    filter: saturate(0.92) brightness(0.96);
+}
+
 #pet-container.is-dragging {
     animation: none !important;
     transform: translateY(2px) scale(0.94);
+}
+
+#pet-container.is-dragging.direction-left {
+    transform: translateY(2px) rotate(-3deg) scale(0.94);
+}
+
+#pet-container.is-dragging.direction-right {
+    transform: translateY(2px) rotate(3deg) scale(0.94);
 }
 
 #pet-container.emotion-happy #pet-sprite {
@@ -136,21 +149,21 @@ body:active {
 
 #pet-bubble {
     position: absolute;
-    top: -52px;
+    top: -46px;
     left: 50%;
     transform: translateX(-50%);
     width: max-content;
-    min-width: 92px;
-    max-width: 218px;
-    padding: 7px 10px 8px;
+    min-width: 70px;
+    max-width: 188px;
+    padding: 6px 9px 7px;
     background: rgba(255, 255, 255, 0.94);
     color: rgba(17, 24, 31, 0.9);
     font-family: "Segoe UI", sans-serif;
-    font-size: 12.5px;
-    line-height: 1.36;
+    font-size: 12px;
+    line-height: 1.34;
     text-align: left;
     border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 14px;
+    border-radius: 12px;
     box-shadow:
         0 12px 26px rgba(15, 23, 42, 0.18),
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -184,7 +197,7 @@ body:active {
     position: relative;
     z-index: 1;
     display: -webkit-box;
-    max-width: 198px;
+    max-width: 168px;
     overflow: hidden;
     color: rgba(31, 41, 55, 0.9);
     text-overflow: ellipsis;
@@ -256,6 +269,12 @@ body:active {
 @keyframes pet-blink {
     0%, 100% { transform: scaleY(1); }
     45%, 55% { transform: scaleY(0.82); }
+}
+
+@keyframes pet-sleepy {
+    0%, 100% { transform: translateY(0) scaleY(1); }
+    35% { transform: translateY(2px) scaleY(0.94); }
+    62% { transform: translateY(1px) scaleY(0.98); }
 }
 
 @keyframes pet-spark {

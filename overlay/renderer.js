@@ -32,8 +32,14 @@ const behavior = window.UnipetBehavior || {
     }),
     clipBubbleText: (text) => String(text || '').slice(0, 20),
 };
-const BUBBLE_VISIBLE_MS = 10000;
-const WAITING_BUBBLE_VISIBLE_MS = 15000;
+const BUBBLE_MIN_VISIBLE_MS = 3200;
+const BUBBLE_STATE_MS = {
+    idle: 0,
+    running: 4500,
+    waiting: 12000,
+    failed: 9000,
+    review: 6500,
+};
 
 function configureSpriteSize() {
     const root = document.documentElement;
@@ -52,6 +58,7 @@ const motion = {
         setPrefixedClass('state-', intent.state || 'idle');
         setPrefixedClass('emotion-', intent.emotion || 'calm');
         setPrefixedClass('motion-', intent.motion || 'idle');
+        setPrefixedClass('tempo-', intent.tempo || 'normal');
     },
 
     trigger(effectName, duration = 900) {
@@ -66,7 +73,7 @@ const motion = {
 
     scheduleIdle() {
         clearTimeout(this.idleTimer);
-        const delay = 20000 + Math.round(Math.random() * 20000);
+        const delay = 26000 + Math.round(Math.random() * 32000);
         this.idleTimer = setTimeout(() => this.runIdleMoment(), delay);
     },
 
@@ -82,7 +89,7 @@ const motion = {
         if (moment.effect) {
             this.trigger(moment.effect, moment.durationMs || 450);
         }
-        if (moment.type === 'look') {
+        if (moment.type === 'look-left' || moment.type === 'look-right') {
             anim.playTemporary(moment.animation || 'running_left', moment.durationMs || 900, moment.fps || 8);
         } else if (moment.type === 'hop') {
             anim.playPreview(moment.animation || 'jumping');
@@ -168,7 +175,7 @@ const anim = {
         // Keep looping animations running while still updating fresh messages.
         if (this.currentState === normalized && cfg.loop) {
             if (this.currentFps !== fps) this.startLoop(fps);
-            if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState);
+            if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState, intent.bubbleMs);
             statusEl.textContent = nextBridgeState;
             if (isSettling) this.normalizeIdleAfterSettle();
             return;
@@ -187,7 +194,7 @@ const anim = {
         }
 
         // Show bubble if message provided
-        if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState);
+        if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState, intent.bubbleMs);
         statusEl.textContent = nextBridgeState;
         if (isSettling) this.normalizeIdleAfterSettle();
     },
@@ -219,7 +226,7 @@ const anim = {
         const fallback = fallbackState || cfg.fallback || 'idle';
         const totalFrames = cfg.frames;
         let played = 1;
-        const interval = 1000 / cfg.fps;
+        const interval = 1000 / (fallbackFps || cfg.fps);
 
         this.frameTimer = setInterval(() => {
             if (played >= totalFrames) {
@@ -280,6 +287,7 @@ const anim = {
         const fps = cfg.fps;
 
         clearTimeout(this.temporaryTimer);
+        setPrefixedClass('direction-', direction === 'left' ? 'left' : 'right');
         if (this.currentState !== normalized) {
             this.stopLoop();
             this.currentState = normalized;
@@ -310,9 +318,11 @@ const anim = {
     },
 
     /** Show a speech bubble for a few seconds. */
-    showBubble(text, stateName) {
+    showBubble(text, stateName, requestedMs) {
         const displayText = behavior.clipBubbleText(text);
         if (!displayText) return;
+        const duration = normalizeBubbleMs(requestedMs, stateName);
+        if (duration <= 0) return;
         const now = Date.now();
         if (displayText === this.lastBubbleText && now - this.lastBubbleAt < 5000) return;
 
@@ -323,9 +333,20 @@ const anim = {
         bubbleEl.classList.remove('hidden');
         this.bubbleTimer = setTimeout(() => {
             bubbleEl.classList.add('hidden');
-        }, stateName === 'waiting' ? WAITING_BUBBLE_VISIBLE_MS : BUBBLE_VISIBLE_MS);
+        }, duration);
     },
 };
+
+function normalizeBubbleMs(requestedMs, stateName) {
+    const raw = Number(requestedMs || 0);
+    const key = stateName || 'running';
+    const fallback = Object.prototype.hasOwnProperty.call(BUBBLE_STATE_MS, key)
+        ? BUBBLE_STATE_MS[key]
+        : BUBBLE_STATE_MS.running;
+    const value = Number.isFinite(raw) && raw > 0 ? raw : fallback;
+    if (!value) return 0;
+    return Math.max(BUBBLE_MIN_VISIBLE_MS, Math.min(value, 15000));
+}
 
 // ---- Initialise ----
 function init() {
@@ -363,7 +384,9 @@ function init() {
         anim.playPreview('jumping');
     });
     spriteEl.addEventListener('mouseenter', () => {
-        if (!dragActive) anim.playPreview('jumping');
+        if (dragActive) return;
+        motion.trigger('blink', 420);
+        if (anim.currentBridgeState === 'idle') anim.playPreview('waving');
     });
 }
 
@@ -402,6 +425,7 @@ document.addEventListener('mouseup', () => {
     dragActive = false;
     dragDirection = null;
     motion.setDragging(false);
+    removePrefixedClasses('direction-');
     motion.trigger('settle', 700);
     anim.resumeBridgeState();
     if (window.unipetAPI) window.unipetAPI.petDragEnd();
