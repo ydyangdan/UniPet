@@ -22,22 +22,25 @@
   };
 
   const STATE_INTENTS = {
-    idle: { animation: 'idle', fps: 1, emotion: 'calm', motion: 'idle' },
-    running: { animation: 'running', fps: 6, emotion: 'focused', motion: 'work' },
-    waiting: { animation: 'waiting', fps: 4, emotion: 'curious', motion: 'wait' },
-    failed: { animation: 'failed', fps: 4, emotion: 'frustrated', effect: 'shake', motion: 'alert' },
-    review: { animation: 'review', fps: 4, emotion: 'happy', effect: 'bounce', motion: 'idle' },
+    idle: { animation: 'idle', fps: 0.6, emotion: 'calm', motion: 'idle', bubbleMs: 0, tempo: 'quiet' },
+    running: { animation: 'running', fps: 5, emotion: 'focused', motion: 'work', bubbleMs: 4500, tempo: 'normal' },
+    waiting: { animation: 'waiting', fps: 2.6, emotion: 'curious', motion: 'wait', bubbleMs: 10000, tempo: 'slow' },
+    failed: { animation: 'failed', fps: 3.2, emotion: 'frustrated', effect: 'shake', motion: 'alert', bubbleMs: 9000, tempo: 'fast' },
+    review: { animation: 'review', fps: 2.8, emotion: 'happy', effect: 'bounce', motion: 'idle', bubbleMs: 6500, tempo: 'slow' },
   };
 
   const KIND_INTENTS = {
-    failure: { animation: 'failed', fps: 5, emotion: 'frustrated', effect: 'shake', motion: 'alert' },
-    success: { animation: 'review', fps: 5, emotion: 'happy', effect: 'bounce', motion: 'idle' },
-    delegate: { animation: 'jumping', fps: 6, emotion: 'excited', effect: 'bounce', motion: 'work' },
-    network: { animation: 'waving', fps: 5, emotion: 'focused', motion: 'scan' },
-    write: { animation: 'running_right', fps: 6, emotion: 'focused', motion: 'work' },
-    read: { animation: 'running_left', fps: 6, emotion: 'focused', motion: 'scan' },
-    shell: { animation: 'running', fps: 6, emotion: 'focused', motion: 'work' },
-    thinking: { animation: 'running', fps: 3, emotion: 'focused', motion: 'think' },
+    failure: { animation: 'failed', fps: 3.6, emotion: 'frustrated', effect: 'shake', motion: 'alert', bubbleMs: 9000, tempo: 'fast' },
+    success: { animation: 'review', fps: 3.2, emotion: 'happy', effect: 'bounce', motion: 'idle', bubbleMs: 6500, tempo: 'slow' },
+    permission: { animation: 'waiting', fps: 2.4, emotion: 'curious', motion: 'wait', bubbleMs: 12000, tempo: 'slow' },
+    delegate: { animation: 'jumping', fps: 5, emotion: 'excited', effect: 'bounce', motion: 'work', bubbleMs: 5000, tempo: 'fast' },
+    test: { animation: 'running', fps: 5.4, emotion: 'focused', motion: 'work', bubbleMs: 4200, tempo: 'fast' },
+    build: { animation: 'running_right', fps: 5, emotion: 'focused', motion: 'work', bubbleMs: 4200, tempo: 'normal' },
+    network: { animation: 'waving', fps: 4.2, emotion: 'focused', motion: 'scan', bubbleMs: 4500, tempo: 'normal' },
+    write: { animation: 'running_right', fps: 4.8, emotion: 'focused', motion: 'work', bubbleMs: 4500, tempo: 'normal' },
+    read: { animation: 'running_left', fps: 4.2, emotion: 'focused', motion: 'scan', bubbleMs: 4200, tempo: 'normal' },
+    shell: { animation: 'running', fps: 5, emotion: 'focused', motion: 'work', bubbleMs: 4200, tempo: 'normal' },
+    thinking: { animation: 'running', fps: 2.2, emotion: 'focused', motion: 'think', bubbleMs: 5500, tempo: 'slow' },
   };
 
   function clamp(value, min, max) {
@@ -81,6 +84,8 @@
       energy: life.energy,
       attention: life.attention,
       fallbackAnimation: fallbackAnimationFor(signal.state),
+      bubbleMs: kindIntent.bubbleMs || stateIntent.bubbleMs || 0,
+      tempo: kindIntent.tempo || stateIntent.tempo || 'normal',
       life,
     };
 
@@ -89,10 +94,12 @@
 
   function nextIdleMoment(random = Math.random) {
     const roll = random();
-    if (roll < 0.70) return { type: 'none', durationMs: 0 };
-    if (roll < 0.85) return { type: 'blink', effect: 'blink', durationMs: 450 };
-    if (roll < 0.95) return { type: 'look', animation: 'running_left', fps: 6, durationMs: 1100 };
-    return { type: 'hop', animation: 'jumping', effect: 'bounce', fps: 6, durationMs: 1000 };
+    if (roll < 0.62) return { type: 'none', durationMs: 0 };
+    if (roll < 0.78) return { type: 'blink', effect: 'blink', durationMs: 420 };
+    if (roll < 0.88) return { type: 'look-left', animation: 'running_left', fps: 3.6, durationMs: 1300 };
+    if (roll < 0.94) return { type: 'look-right', animation: 'running_right', fps: 3.6, durationMs: 1300 };
+    if (roll < 0.985) return { type: 'hop', animation: 'jumping', effect: 'bounce', fps: 4.8, durationMs: 1100 };
+    return { type: 'sleepy', effect: 'sleepy', durationMs: 1800 };
   }
 
   return {

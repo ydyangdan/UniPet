@@ -15,15 +15,15 @@
   const SHEET_ROWS = 9;
 
   const ANIMATION_ROWS = {
-    idle: { row: 0, frames: 6, fps: 1, loop: true },
-    running: { row: 7, frames: 6, fps: 6, loop: true },
-    running_right: { row: 1, frames: 8, fps: 6, loop: true },
-    running_left: { row: 2, frames: 8, fps: 6, loop: true },
-    waving: { row: 3, frames: 4, fps: 5, loop: false, fallback: 'idle' },
-    jumping: { row: 4, frames: 5, fps: 6, loop: false, fallback: 'idle' },
-    failed: { row: 5, frames: 8, fps: 4, loop: true },
-    waiting: { row: 6, frames: 6, fps: 4, loop: true },
-    review: { row: 8, frames: 6, fps: 4, loop: true },
+    idle: { row: 0, frames: 6, fps: 0.6, loop: true },
+    running: { row: 7, frames: 6, fps: 5, loop: true },
+    running_right: { row: 1, frames: 8, fps: 4.8, loop: true },
+    running_left: { row: 2, frames: 8, fps: 4.2, loop: true },
+    waving: { row: 3, frames: 4, fps: 4.2, loop: false, fallback: 'idle' },
+    jumping: { row: 4, frames: 5, fps: 4.8, loop: false, fallback: 'idle' },
+    failed: { row: 5, frames: 8, fps: 3.2, loop: true },
+    waiting: { row: 6, frames: 6, fps: 2.6, loop: true },
+    review: { row: 8, frames: 6, fps: 2.8, loop: true },
   };
 
   function readRenderScale(value) {

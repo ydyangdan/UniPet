@@ -16,15 +16,22 @@ test('infers read and write behaviors from messages', () => {
 test('infers shell, thinking, success, and failure behavior', () => {
   assert.deepEqual(
     pick(inferBehavior({ state: 'running', message: 'exec_shell npm test' })),
-    { animation: 'running', fps: 6, emotion: 'focused', rule: 'shell' },
+    { animation: 'running', fps: 5.4, emotion: 'focused', rule: 'test' },
   );
   assert.deepEqual(
     pick(inferBehavior({ state: 'running', message: 'thinking through plan' })),
-    { animation: 'running', fps: 3, emotion: 'focused', rule: 'thinking' },
+    { animation: 'running', fps: 2.2, emotion: 'focused', rule: 'thinking' },
   );
   assert.equal(inferBehavior({ state: 'review', message: 'all tests pass' }).emotion, 'happy');
   assert.equal(inferBehavior({ state: 'failed', message: 'tool failed with timeout' }).effect, 'shake');
   assert.equal(inferBehavior({ state: 'review', message: 'done with error' }).emotion, 'frustrated');
+});
+
+test('distinguishes permission, build, network, and delegate behavior', () => {
+  assert.equal(inferBehavior({ state: 'waiting', message: 'Waiting for approval' }).rule, 'permission');
+  assert.equal(inferBehavior({ state: 'running', message: 'compile package' }).animation, 'running_right');
+  assert.equal(inferBehavior({ state: 'running', message: 'fetch search results' }).animation, 'waving');
+  assert.equal(inferBehavior({ state: 'running', message: 'delegate task to worker' }).animation, 'jumping');
 });
 
 test('keeps short lived life state outside the bridge protocol', () => {
@@ -46,8 +53,10 @@ test('does not require bridge protocol fields beyond state and message', () => {
 test('plans quiet idle moments most of the time', () => {
   assert.equal(nextIdleMoment(() => 0.10).type, 'none');
   assert.equal(nextIdleMoment(() => 0.75).type, 'blink');
-  assert.equal(nextIdleMoment(() => 0.90).type, 'look');
-  assert.equal(nextIdleMoment(() => 0.99).type, 'hop');
+  assert.equal(nextIdleMoment(() => 0.84).type, 'look-left');
+  assert.equal(nextIdleMoment(() => 0.91).type, 'look-right');
+  assert.equal(nextIdleMoment(() => 0.97).type, 'hop');
+  assert.equal(nextIdleMoment(() => 0.99).type, 'sleepy');
 });
 
 function pick(intent) {

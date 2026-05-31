@@ -61,18 +61,33 @@
   const MESSAGE_SIGNALS = [
     {
       kind: 'failure',
-      pattern: keywordPattern(['fail', 'failed', 'failure', 'error', 'denied', 'timeout', 'exception', 'abort', 'crash']),
+      pattern: keywordPattern(['fail', 'failed', 'failure', 'error', 'denied', 'timeout', 'exception', 'abort', 'crash', 'rejected']),
       signal: { mood: 'frustrated', attention: 'alert', urgency: 'high', energyDelta: -12, motion: 'alert' },
     },
     {
       kind: 'success',
-      pattern: keywordPattern(['pass', 'passed', 'success', 'succeeded', 'done', 'complete', 'completed', 'ok']),
+      pattern: keywordPattern(['pass', 'passed', 'success', 'succeeded', 'done', 'complete', 'completed', 'ok', 'ready']),
       signal: { mood: 'proud', attention: 'agent', urgency: 'low', energyDelta: 10, motion: 'idle' },
+    },
+    {
+      kind: 'permission',
+      pattern: keywordPattern(['approval', 'approve', 'confirm', 'permission', 'input', 'choose', 'select', 'waiting', 'interrupt']),
+      signal: { mood: 'curious', attention: 'user', urgency: 'normal', energyDelta: -2, motion: 'wait' },
     },
     {
       kind: 'delegate',
       pattern: keywordPattern(['agent', 'task', 'delegate', 'worker', 'subtask']),
       signal: { mood: 'excited', attention: 'agent', urgency: 'normal', energyDelta: 8, motion: 'work' },
+    },
+    {
+      kind: 'test',
+      pattern: keywordPattern(['test', 'tests', 'pytest', 'vitest', 'jest', 'check', 'lint', 'ci']),
+      signal: { mood: 'focused', attention: 'agent', urgency: 'normal', energyDelta: 7, motion: 'work' },
+    },
+    {
+      kind: 'build',
+      pattern: keywordPattern(['build', 'compile', 'bundle', 'pack', 'release', 'publish']),
+      signal: { mood: 'focused', attention: 'agent', urgency: 'normal', energyDelta: 6, motion: 'work' },
     },
     {
       kind: 'network',
@@ -81,12 +96,12 @@
     },
     {
       kind: 'write',
-      pattern: keywordPattern(['write', 'edit', 'save', 'patch', 'apply', 'commit', 'create', 'update', 'modify']),
+      pattern: keywordPattern(['write', 'edit', 'save', 'patch', 'apply', 'apply_patch', 'commit', 'create', 'update', 'modify']),
       signal: { mood: 'focused', attention: 'agent', urgency: 'normal', energyDelta: 5, motion: 'work' },
     },
     {
       kind: 'read',
-      pattern: keywordPattern(['read', 'grep', 'find', 'cat', 'ls', 'list', 'scan', 'inspect', 'open']),
+      pattern: keywordPattern(['read', 'grep', 'rg', 'find', 'cat', 'ls', 'list', 'scan', 'inspect', 'open']),
       signal: { mood: 'focused', attention: 'outside', urgency: 'normal', energyDelta: 3, motion: 'scan' },
     },
     {
