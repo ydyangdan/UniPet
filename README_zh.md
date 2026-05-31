@@ -7,10 +7,10 @@
 
 UniPet 是一款面向 AI 编程助手的通用桌面宠物。
 
-你可以把它理解成“通用版 Codex Pet”：把看不见的 Agent 工作过程变成一个会动的
-桌面伙伴，让你直观看到它正在思考、执行工具、等待输入、失败，还是已经准备好让你
-检查。UniPet 围绕轻量本地协议设计，任何 Agent 都可以在不修改核心代码的情况下
-驱动它。
+你可以把它理解成“通用版 Codex Pet”：UniPet 是一个本地 Agent 状态可视化层，
+把看不见的 Agent 工作过程变成一个会动的桌面伙伴，让你直观看到它正在思考、
+执行工具、等待输入、失败，还是已经准备好让你检查。它围绕轻量 localhost 协议
+设计，Agent、hook、脚本和 plugin 都可以在不修改核心代码的情况下驱动它。
 
 ![UniPet demo](https://raw.githubusercontent.com/ydyangdan/UniPet/main/docs/assets/unipet-promo.gif)
 
@@ -30,6 +30,7 @@ unipet agent add codex
 - 本地优先：只监听 localhost，事件留在本机。
 - 轻量：Node.js + Electron，UniPet 本身不要求 Python。
 - 支持 Codex 兼容宠物：可以用命令安装、切换和删除皮肤。
+- 面向标准层设计：连接器只发送事实，行为、气泡和渲染由 UniPet 统一负责。
 
 ## UniPet 聚焦什么
 
@@ -56,6 +57,13 @@ unipet agent add claude-code
 unipet agent add hermes
 unipet agent add openclaw
 unipet agent add deepseek-tui
+```
+
+检查本地运行时和连接器状态：
+
+```bash
+unipet doctor
+unipet agent status
 ```
 
 后续更新：
@@ -228,7 +236,8 @@ UniPet/
 
 ## 故障排查
 
-- 先运行 `unipet doctor`。它会检查本地桥、运行时文件、当前宠物和命令配置。
+- 先运行 `unipet doctor`。它会检查本地桥、运行时文件、当前宠物和命令配置，并输出推荐的 `next:` 操作。
+- 安装连接器后运行 `unipet agent status`。每个连接器都会显示配置路径、managed hook/plugin 状态和 `next:` 操作。
 - 如果 `127.0.0.1:8768` 已被占用，先运行 `unipet stop`，再运行 `unipet start`。
 - 安装连接器后，需要重启对应的 Agent 会话、gateway 或 TUI。
 

@@ -7,11 +7,11 @@
 
 UniPet is a Universal Desktop Pet for AI coding agents.
 
-Think Codex Pet, but for every agent. UniPet turns invisible agent work into a
-small animated desktop companion, so you can see when your agent is thinking,
-running tools, waiting for input, failing, or ready for review. It is powered by
-a lightweight local protocol that any agent can speak without patching its core
-code.
+Think Codex Pet, but for every agent. UniPet is a local visual status layer that
+turns invisible agent work into a small animated desktop companion, so you can
+see when your agent is thinking, running tools, waiting for input, failing, or
+ready for review. It runs through a lightweight localhost protocol, so agents,
+hooks, scripts, and plugins can drive the pet without patching their core code.
 
 ![UniPet demo](https://raw.githubusercontent.com/ydyangdan/UniPet/main/docs/assets/unipet-promo.gif)
 
@@ -31,6 +31,7 @@ unipet agent add codex
 - Local-first: listens on localhost and keeps events on your machine.
 - Lightweight: Node.js + Electron; UniPet itself does not require Python.
 - Codex-compatible pets: install, switch, and remove skins from the CLI.
+- Built for standards: connectors send facts, while UniPet owns behavior, bubbles, and rendering.
 
 ## What UniPet Focuses On
 
@@ -57,6 +58,13 @@ unipet agent add claude-code
 unipet agent add hermes
 unipet agent add openclaw
 unipet agent add deepseek-tui
+```
+
+Check the local runtime and connector setup:
+
+```bash
+unipet doctor
+unipet agent status
 ```
 
 Update later with:
@@ -230,7 +238,9 @@ UniPet/
 ## Troubleshooting
 
 - Run `unipet doctor` first. It checks the local bridge, runtime file, current
-  pet, and command setup.
+  pet, command setup, and prints a `next:` line with the recommended action.
+- Run `unipet agent status` after installing connectors. Each connector prints
+  its config path, managed hook/plugin state, and a `next:` line.
 - If `127.0.0.1:8768` is already in use, run `unipet stop`, then `unipet start`.
 - After installing a connector, restart the related agent session, gateway, or TUI.
 

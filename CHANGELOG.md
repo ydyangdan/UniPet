@@ -8,6 +8,8 @@
 - Added `unipet demo` for a quick local status visualization walkthrough.
 - Improved companion behavior planning, idle moments, hover/drag feedback, and
   bubble timing while keeping the bridge protocol unchanged.
+- Improved `unipet doctor` and `unipet agent status` guidance with actionable
+  `next:` suggestions.
 - Added `unipet pet validate` and `unipet pet import` for local pet authors.
 - Fixed Unix process liveness detection when process probes return `EPERM`.
 
