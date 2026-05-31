@@ -609,18 +609,23 @@ async function cmdDemo(args) {
 }
 
 async function cmdDoctor() {
+  const electronOk = Boolean(electronBinary());
+  const live = await liveRuntime();
+  const summary = doctorSummary({ electronOk, live });
+
   console.log('UniPet doctor');
   console.log(`  node: ${process.version}`);
   console.log(`  cli: ${__filename}`);
   console.log(`  home: ${unipetHome()}`);
   console.log(`  pets: ${pets.petsRoot()}`);
   console.log(`  current pet: ${pets.currentPetId()}`);
-  console.log(`  electron: ${electronBinary() ? 'ok' : 'missing'}`);
+  console.log(`  electron: ${electronOk ? 'ok' : 'missing'}`);
   console.log(`  runtime file: ${fs.existsSync(runtimePath()) ? runtimePath() : 'missing'}`);
+  console.log(`  health: ${summary.health}`);
   console.log(`  connectors: ${connectorLifecycle.connectorList().length} available (run 'unipet agent status' for details)`);
-  const live = await liveRuntime();
   if (!live) {
     console.log('  runtime: not running');
+    for (const next of summary.next) console.log(`  next: ${next}`);
     return 0;
   }
   const { runtime, currentHealth } = live;
@@ -629,7 +634,30 @@ async function cmdDoctor() {
   console.log(`  http: http://${runtime.host}:${runtime.port}`);
   console.log(`  websocket: ${runtime.ws_url || `ws://${runtime.host}:${runtime.ws_port}/ws`}`);
   console.log(`  uptime: ${Math.floor(currentHealth.uptime || 0)}s`);
+  for (const next of summary.next) console.log(`  next: ${next}`);
   return 0;
+}
+
+function doctorSummary({ electronOk, live }) {
+  if (!electronOk) {
+    return {
+      health: 'needs install',
+      next: ["reinstall with 'npm install -g uni-pet' or run 'npm install' from source"],
+    };
+  }
+  if (!live) {
+    return {
+      health: 'stopped',
+      next: ["run 'unipet start' to launch the desktop pet"],
+    };
+  }
+  return {
+    health: 'ready',
+    next: [
+      "run 'unipet demo' to preview the core agent states",
+      "run 'unipet agent status' to inspect Agent integrations",
+    ],
+  };
 }
 
 function formatLocalPet(pet, currentId) {
@@ -941,6 +969,7 @@ if (require.main === module) {
   main();
 } else {
   module.exports = {
+    doctorSummary,
     isProcessProbeLiveError,
   };
 }

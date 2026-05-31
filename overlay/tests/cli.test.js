@@ -11,6 +11,24 @@ test('treats EPERM process probes as live processes', () => {
   assert.equal(cli.isProcessProbeLiveError(null), false);
 });
 
+test('doctor summary gives clear next steps', () => {
+  assert.deepEqual(cli.doctorSummary({ electronOk: false, live: null }), {
+    health: 'needs install',
+    next: ["reinstall with 'npm install -g uni-pet' or run 'npm install' from source"],
+  });
+  assert.deepEqual(cli.doctorSummary({ electronOk: true, live: null }), {
+    health: 'stopped',
+    next: ["run 'unipet start' to launch the desktop pet"],
+  });
+  assert.deepEqual(cli.doctorSummary({ electronOk: true, live: {} }), {
+    health: 'ready',
+    next: [
+      "run 'unipet demo' to preview the core agent states",
+      "run 'unipet agent status' to inspect Agent integrations",
+    ],
+  });
+});
+
 test('help exposes the demo command', () => {
   const result = spawnSync(process.execPath, [path.join(__dirname, '..', 'cli.js'), '--help'], {
     encoding: 'utf8',
