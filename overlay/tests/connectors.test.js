@@ -47,3 +47,18 @@ test('detects Codex managed hook blocks', () => {
   assert.equal(connectors.hasCodexManagedBlock('# >>> unipet codex hooks\nx\n# <<< unipet codex hooks'), true);
   assert.equal(connectors.hasCodexManagedBlock('model = "gpt-5"'), false);
 });
+
+test('formats connector status with actionable next steps', () => {
+  const lines = connectors.formatStatus({
+    label: 'Codex',
+    installed: false,
+    details: ['config: /tmp/config.toml'],
+    next: ["run 'unipet agent add codex' to add managed hooks"],
+  });
+
+  assert.deepEqual(lines, [
+    'Codex: not installed',
+    '  config: /tmp/config.toml',
+    "  next: run 'unipet agent add codex' to add managed hooks",
+  ]);
+});

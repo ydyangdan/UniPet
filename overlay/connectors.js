@@ -158,6 +158,7 @@ function hermesStatus(options = {}) {
   const paths = hermesPaths(options);
   const command = options.hermesCommand || 'hermes';
   const commandFound = commandAvailable(command);
+  const installed = fs.existsSync(paths.plugin);
   let pluginState = 'unknown';
   if (commandFound) {
     const result = runCommand(command, ['plugins', 'list'], {
@@ -166,14 +167,25 @@ function hermesStatus(options = {}) {
     });
     pluginState = result.timedOut ? 'timeout' : statusFromOutput(`${result.stdout}\n${result.stderr}`, 'unipet');
   }
+  const next = [];
+  if (!installed) {
+    next.push("run 'unipet agent add hermes' to install the connector");
+  } else if (!commandFound) {
+    next.push("Hermes command was not found; disable manually later with 'hermes plugins disable unipet'");
+  } else if (pluginState === 'timeout') {
+    next.push("Hermes did not answer in time; try 'hermes plugins list' or rerun 'unipet agent add hermes'");
+  } else if (pluginState !== 'enabled') {
+    next.push("run 'unipet agent add hermes' to enable or refresh the connector");
+  }
   return {
     id: HERMES_ID,
     label: 'Hermes',
-    installed: fs.existsSync(paths.plugin),
+    installed,
     enabled: pluginState,
+    next,
     details: [
       `home: ${paths.home}`,
-      `plugin: ${lineWith(fs.existsSync(paths.plugin))} (${paths.plugin})`,
+      `plugin: ${lineWith(installed)} (${paths.plugin})`,
       `hermes command: ${commandFound ? 'found' : 'missing'}`,
       `plugin state: ${pluginState}`,
     ],
@@ -183,11 +195,15 @@ function hermesStatus(options = {}) {
 function openClawStatus(options = {}) {
   const command = options.openclawCommand || process.env.OPENCLAW_COMMAND || 'openclaw';
   const commandFound = commandAvailable(command);
+  const next = commandFound
+    ? ["run 'unipet agent add openclaw' to install or refresh the plugin"]
+    : ["OpenClaw command was not found; install OpenClaw or pass '--openclaw-command <command>'"];
   return {
     id: OPENCLAW_ID,
     label: 'OpenClaw',
     installed: null,
     enabled: 'unknown',
+    next,
     details: [
       `openclaw command: ${commandFound ? 'found' : 'missing'}`,
       `plugin id: ${OPENCLAW_PLUGIN_ID}`,
@@ -242,6 +258,9 @@ function deepSeekTuiStatus(options = {}) {
     label: 'DeepSeek-TUI',
     installed,
     enabled: installed ? 'enabled' : 'no',
+    next: installed
+      ? ['restart DeepSeek-TUI so the managed hooks are loaded']
+      : ["run 'unipet agent add deepseek-tui' to add managed hooks"],
     details: [
       `config: ${configPath}`,
       `config file: ${exists ? 'found' : 'missing'}`,
@@ -260,6 +279,9 @@ function codexStatus(options = {}) {
     label: 'Codex',
     installed,
     enabled: installed ? 'enabled' : 'no',
+    next: installed
+      ? ['restart Codex so the managed hooks are loaded']
+      : ["run 'unipet agent add codex' to add managed hooks"],
     details: [
       `config: ${configPath}`,
       `config file: ${exists ? 'found' : 'missing'}`,
@@ -279,6 +301,9 @@ function claudeCodeStatus(options = {}) {
     label: 'Claude Code',
     installed,
     enabled: installed ? 'enabled' : 'no',
+    next: installed
+      ? ['restart Claude Code so the managed hooks are loaded']
+      : ["run 'unipet agent add claude-code' to add managed hooks"],
     details: [
       `settings: ${settingsPath}`,
       `settings file: ${exists ? 'found' : 'missing'}`,
@@ -301,6 +326,7 @@ function formatStatus(status) {
   return [
     `${status.label}: ${installed}`,
     ...status.details.map((detail) => `  ${detail}`),
+    ...(status.next || []).map((next) => `  next: ${next}`),
   ];
 }
 
