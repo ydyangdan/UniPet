@@ -56,3 +56,24 @@ states before storing or broadcasting.
 - Keep sources independent. Each connector owns one or more source ids; the
   bridge chooses the active source by state priority and recency.
 - Keep the bridge local-first. The default bind address is `127.0.0.1`.
+
+## Compatibility Promise
+
+Protocol v2 is meant to be a stable connector boundary:
+
+- Connectors should only rely on `source`, `state`, `message`, `action`, and
+  `ttl`.
+- Unknown extra fields are ignored by the bridge and should not be required by
+  renderers.
+- New pet behavior should be derived locally from state and message instead of
+  adding renderer-specific connector fields.
+- If a future protocol version needs a new required field, UniPet should keep
+  v2 connector examples and tests available during the transition.
+
+## Minimal Shell Example
+
+```bash
+curl -X POST http://127.0.0.1:8768/api/pet/events \
+  -H "Content-Type: application/json" \
+  -d '{"source":"demo","state":"running","message":"Running tests","ttl":"30s"}'
+```
