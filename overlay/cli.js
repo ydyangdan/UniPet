@@ -52,6 +52,10 @@ function readRuntime() {
   }
 }
 
+function isProcessProbeLiveError(err) {
+  return Boolean(err && err.code === 'EPERM');
+}
+
 function processExists(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   if (process.platform === 'win32') {
@@ -61,7 +65,8 @@ function processExists(pid) {
   try {
     process.kill(pid, 0);
     return true;
-  } catch (_) {
+  } catch (err) {
+    if (isProcessProbeLiveError(err)) return true;
     return false;
   }
 }
@@ -537,6 +542,46 @@ async function cmdClear() {
   return 0;
 }
 
+const DEMO_STEPS = Object.freeze([
+  { state: 'running', message: 'Reading project context', ttl: '8s' },
+  { state: 'running', message: 'Running tools', ttl: '8s' },
+  { state: 'waiting', message: 'Waiting for approval', ttl: '8s' },
+  { state: 'failed', message: 'Command failed', ttl: '8s' },
+  { state: 'review', message: 'Ready for review', ttl: '12s' },
+]);
+
+async function cmdDemo(args) {
+  const { options } = parseOptions(args);
+  const source = options.source || 'demo';
+  const rawStep = options.step || options.interval || '1500ms';
+  const stepMs = normalizeTtl(rawStep);
+  if (stepMs === null) {
+    console.error('Step duration must look like 1500ms, 2s, or 1m.');
+    return 1;
+  }
+  const runtime = await ensureRunning();
+  if (!runtime) {
+    console.error('UniPet bridge is not available.');
+    return 1;
+  }
+
+  console.log(`Demo source: ${source}`);
+  for (const step of DEMO_STEPS) {
+    const payload = {
+      source,
+      state: step.state,
+      message: step.message,
+      action: 'update',
+      ttl: normalizeTtl(step.ttl),
+    };
+    await requestJson('POST', runtime.port || DEFAULT_PORT, '/api/pet/events', payload, runtime.host || DEFAULT_HOST);
+    console.log(`  ${step.state.padEnd(7)} ${step.message}`);
+    await sleep(stepMs);
+  }
+  console.log('Demo complete. Run `unipet clear` to return to idle.');
+  return 0;
+}
+
 async function cmdDoctor() {
   console.log('UniPet doctor');
   console.log(`  node: ${process.version}`);
@@ -764,6 +809,7 @@ Commands:
   unipet status
   unipet doctor
   unipet stop
+  unipet demo [--source demo] [--step 1500ms]
   unipet clear
   unipet state <idle|running|waiting|failed|review> <message> [--source id] [--ttl duration]
   unipet agent <list|status|add|disable|remove>
@@ -788,6 +834,10 @@ async function main() {
     }
     if (command === 'doctor') {
       process.exitCode = await cmdDoctor();
+      return;
+    }
+    if (command === 'demo') {
+      process.exitCode = await cmdDemo(args);
       return;
     }
     if (command === 'state') {
@@ -824,4 +874,10 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+} else {
+  module.exports = {
+    isProcessProbeLiveError,
+  };
+}

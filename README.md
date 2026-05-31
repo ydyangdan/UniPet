@@ -18,6 +18,7 @@ code.
 ```bash
 npm install -g uni-pet
 unipet start
+unipet demo
 unipet agent add codex
 ```
 
@@ -31,6 +32,15 @@ unipet agent add codex
 - Lightweight: Node.js + Electron; UniPet itself does not require Python.
 - Codex-compatible pets: install, switch, and remove skins from the CLI.
 
+## How UniPet Is Different
+
+| Project style | Best at | UniPet difference |
+| --- | --- | --- |
+| Codex Pet-style skins | Fun animated pets and community skins | UniPet keeps Codex-compatible pets but works beyond one agent. |
+| Agent-specific pets | Deep integration with one assistant | UniPet uses one local protocol for multiple agents and custom tools. |
+| Terminal status lines | Very lightweight text status | UniPet gives agent work a visible desktop presence. |
+| Full virtual pet apps | Rich pet interactions and game-like systems | UniPet stays focused on developer workflow and agent status. |
+
 ## Quick Start
 
 For most users:
@@ -38,6 +48,7 @@ For most users:
 ```bash
 npm install -g uni-pet
 unipet start
+unipet demo
 ```
 
 Connect only the agents you use:
@@ -81,6 +92,7 @@ unipet stop
 Send a manual test event:
 
 ```bash
+unipet demo
 unipet state running "Running tests"
 unipet state review "Ready for review"
 unipet clear
@@ -105,6 +117,7 @@ unipet state review "Ready for review" --source my-agent
 
 For direct integrations, send local HTTP or WebSocket events with `source`,
 `state`, `message`, `action`, and `ttl`. See [Protocol](docs/PROTOCOL.md).
+For custom scripts and agents, see [Custom Agent Integration](docs/CUSTOM_AGENT.md).
 
 ## Pets
 
@@ -176,6 +189,15 @@ npm start
 `npm run check` runs the overlay tests and connector tests for OpenClaw,
 DeepSeek-TUI, Codex, and Claude Code.
 
+Useful project files:
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Protocol](docs/PROTOCOL.md)
+- [Connectors](docs/CONNECTORS.md)
+- [Custom Agent Integration](docs/CUSTOM_AGENT.md)
+- [Roadmap](ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
+
 <details>
 <summary>Project layout</summary>
 
@@ -216,6 +238,9 @@ UniPet/
 - [Architecture](docs/ARCHITECTURE.md)
 - [Protocol](docs/PROTOCOL.md)
 - [Connectors](docs/CONNECTORS.md)
+- [Custom Agent Integration](docs/CUSTOM_AGENT.md)
+- [Changelog](CHANGELOG.md)
+- [Roadmap](ROADMAP.md)
 
 ## License
 

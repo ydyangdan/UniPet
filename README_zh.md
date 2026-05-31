@@ -17,6 +17,7 @@ UniPet 是一款面向 AI 编程助手的通用桌面宠物。
 ```bash
 npm install -g uni-pet
 unipet start
+unipet demo
 unipet agent add codex
 ```
 
@@ -30,6 +31,15 @@ unipet agent add codex
 - 轻量：Node.js + Electron，UniPet 本身不要求 Python。
 - 支持 Codex 兼容宠物：可以用命令安装、切换和删除皮肤。
 
+## UniPet 有什么不同
+
+| 项目类型 | 擅长什么 | UniPet 的差异 |
+| --- | --- | --- |
+| Codex Pet 风格皮肤 | 有趣的动画宠物和社区皮肤 | UniPet 兼容这类宠物，但不绑定单一 Agent。 |
+| 单 Agent 宠物 | 深度适配某一个助手 | UniPet 用同一套本地协议接入多个 Agent 和自定义工具。 |
+| 终端状态栏 | 极轻量的文本状态 | UniPet 把 Agent 工作变成可见的桌面状态。 |
+| 完整桌宠应用 | 丰富互动和养成玩法 | UniPet 聚焦开发者工作流和 Agent 状态可视化。 |
+
 ## 快速开始
 
 大多数用户直接从 npm 安装：
@@ -37,6 +47,7 @@ unipet agent add codex
 ```bash
 npm install -g uni-pet
 unipet start
+unipet demo
 ```
 
 只连接你实际使用的 Agent：
@@ -80,6 +91,7 @@ unipet stop
 手动发送测试事件：
 
 ```bash
+unipet demo
 unipet state running "Running tests"
 unipet state review "Ready for review"
 unipet clear
@@ -104,6 +116,7 @@ unipet state review "Ready for review" --source my-agent
 
 直接集成时，可以通过本地 HTTP 或 WebSocket 发送 `source`、`state`、`message`、
 `action` 和 `ttl`。详见 [协议](docs/PROTOCOL.md)。
+自定义脚本和 Agent 可以参考 [自定义 Agent 接入](docs/CUSTOM_AGENT.md)。
 
 ## 宠物
 
@@ -175,6 +188,15 @@ npm start
 `npm run check` 会运行 overlay 测试，以及 OpenClaw、DeepSeek-TUI、Codex、
 Claude Code 的连接器测试。
 
+常用项目文档：
+
+- [架构](docs/ARCHITECTURE.md)
+- [协议](docs/PROTOCOL.md)
+- [连接器](docs/CONNECTORS.md)
+- [自定义 Agent 接入](docs/CUSTOM_AGENT.md)
+- [路线图](ROADMAP.md)
+- [贡献指南](CONTRIBUTING.md)
+
 <details>
 <summary>项目结构</summary>
 
@@ -214,6 +236,9 @@ UniPet/
 - [架构设计](docs/ARCHITECTURE.md)
 - [协议](docs/PROTOCOL.md)
 - [连接器](docs/CONNECTORS.md)
+- [自定义 Agent 接入](docs/CUSTOM_AGENT.md)
+- [更新记录](CHANGELOG.md)
+- [路线图](ROADMAP.md)
 
 ## 许可证
 

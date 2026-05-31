@@ -1,0 +1,7 @@
+{
+  "source": "my-agent",
+  "state": "running",
+  "message": "Running tests",
+  "action": "update",
+  "ttl": "30s"
+}

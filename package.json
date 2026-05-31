@@ -19,7 +19,11 @@
     "hermes",
     "openclaw",
     "codex-pet",
-    "universal-pet"
+    "universal-pet",
+    "claude-code",
+    "ai-coding",
+    "developer-tools",
+    "local-first"
   ],
   "engines": {
     "node": ">=18"
@@ -41,6 +45,11 @@
   "files": [
     "README.md",
     "README_zh.md",
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "SECURITY.md",
     "LICENSE",
     "overlay/package.json",
     "overlay/*.js",
@@ -69,7 +78,8 @@
     "connectors/claude-code/install.ps1",
     "connectors/claude-code/install.sh",
     "connectors/claude-code/hook.js",
-    "docs/*.md"
+    "docs/*.md",
+    "examples/**"
   ],
   "dependencies": {
     "electron": "^33.0.0",

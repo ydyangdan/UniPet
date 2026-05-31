@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: UniPet documentation
+    url: https://github.com/ydyangdan/UniPet#readme
+    about: Start here for installation, connectors, pets, and protocol docs.
