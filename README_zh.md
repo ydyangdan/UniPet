@@ -31,14 +31,12 @@ unipet agent add codex
 - 轻量：Node.js + Electron，UniPet 本身不要求 Python。
 - 支持 Codex 兼容宠物：可以用命令安装、切换和删除皮肤。
 
-## UniPet 有什么不同
+## UniPet 聚焦什么
 
-| 项目类型 | 擅长什么 | UniPet 的差异 |
-| --- | --- | --- |
-| Codex Pet 风格皮肤 | 有趣的动画宠物和社区皮肤 | UniPet 兼容这类宠物，但不绑定单一 Agent。 |
-| 单 Agent 宠物 | 深度适配某一个助手 | UniPet 用同一套本地协议接入多个 Agent 和自定义工具。 |
-| 终端状态栏 | 极轻量的文本状态 | UniPet 把 Agent 工作变成可见的桌面状态。 |
-| 完整桌宠应用 | 丰富互动和养成玩法 | UniPet 聚焦开发者工作流和 Agent 状态可视化。 |
+- 一套稳定事件协议，服务多个 Agent，而不是为每个工具做一套私有逻辑。
+- 把真实 coding agent 工作变成可见桌面伙伴，不做沉重复杂的养成游戏。
+- 对开发者友好：hook、plugin、CLI、HTTP、WebSocket 和本地宠物皮肤都能扩展。
+- 小型本地运行时，容易检查、修改和卸载。
 
 ## 快速开始
 
@@ -134,6 +132,8 @@ unipet pet install anby --use
 ```bash
 unipet pet list
 unipet pet current
+unipet pet validate ./my-pet
+unipet pet import ./my-pet --use
 unipet pet use anby
 unipet pet remove anby
 ```
@@ -194,6 +194,7 @@ Claude Code 的连接器测试。
 - [协议](docs/PROTOCOL.md)
 - [连接器](docs/CONNECTORS.md)
 - [自定义 Agent 接入](docs/CUSTOM_AGENT.md)
+- [宠物格式](docs/PET_FORMAT.md)
 - [路线图](ROADMAP.md)
 - [贡献指南](CONTRIBUTING.md)
 
@@ -237,6 +238,7 @@ UniPet/
 - [协议](docs/PROTOCOL.md)
 - [连接器](docs/CONNECTORS.md)
 - [自定义 Agent 接入](docs/CUSTOM_AGENT.md)
+- [宠物格式](docs/PET_FORMAT.md)
 - [更新记录](CHANGELOG.md)
 - [路线图](ROADMAP.md)
 

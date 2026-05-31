@@ -32,14 +32,12 @@ unipet agent add codex
 - Lightweight: Node.js + Electron; UniPet itself does not require Python.
 - Codex-compatible pets: install, switch, and remove skins from the CLI.
 
-## How UniPet Is Different
+## What UniPet Focuses On
 
-| Project style | Best at | UniPet difference |
-| --- | --- | --- |
-| Codex Pet-style skins | Fun animated pets and community skins | UniPet keeps Codex-compatible pets but works beyond one agent. |
-| Agent-specific pets | Deep integration with one assistant | UniPet uses one local protocol for multiple agents and custom tools. |
-| Terminal status lines | Very lightweight text status | UniPet gives agent work a visible desktop presence. |
-| Full virtual pet apps | Rich pet interactions and game-like systems | UniPet stays focused on developer workflow and agent status. |
+- One stable event protocol for many agents instead of one-off integrations.
+- A visible desktop companion for real coding-agent work, not a heavy virtual pet game.
+- Developer-friendly extension points: hooks, plugins, CLI, HTTP, WebSocket, and local pet skins.
+- Small local runtime that is easy to inspect, modify, and remove.
 
 ## Quick Start
 
@@ -135,6 +133,8 @@ Manage local pets:
 ```bash
 unipet pet list
 unipet pet current
+unipet pet validate ./my-pet
+unipet pet import ./my-pet --use
 unipet pet use anby
 unipet pet remove anby
 ```
@@ -195,6 +195,7 @@ Useful project files:
 - [Protocol](docs/PROTOCOL.md)
 - [Connectors](docs/CONNECTORS.md)
 - [Custom Agent Integration](docs/CUSTOM_AGENT.md)
+- [Pet Format](docs/PET_FORMAT.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)
 
@@ -239,6 +240,7 @@ UniPet/
 - [Protocol](docs/PROTOCOL.md)
 - [Connectors](docs/CONNECTORS.md)
 - [Custom Agent Integration](docs/CUSTOM_AGENT.md)
+- [Pet Format](docs/PET_FORMAT.md)
 - [Changelog](CHANGELOG.md)
 - [Roadmap](ROADMAP.md)
 

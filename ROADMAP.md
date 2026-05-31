@@ -13,13 +13,13 @@ and trust.
 
 ## v0.2.x: Better Companion Behavior
 
-- Add richer idle moments, smoother state transitions, and better bubble timing.
+- Continue improving idle moments, state transitions, and bubble timing.
 - Keep the bridge protocol stable and derive animation locally.
 - Improve drag, hover, click, and quiet-mode behavior.
 
 ## v0.3.x: Pet Ecosystem
 
-- Add local pet import and validation commands.
+- Improve local pet import and validation commands.
 - Document the Codex-compatible pet format.
 - Harden pet archive validation for size, paths, and symlinks.
 

@@ -6,6 +6,9 @@
 - Added GitHub issue templates, pull request template, contribution guide, and
   security policy.
 - Added `unipet demo` for a quick local status visualization walkthrough.
+- Improved companion behavior planning, idle moments, hover/drag feedback, and
+  bubble timing while keeping the bridge protocol unchanged.
+- Added `unipet pet validate` and `unipet pet import` for local pet authors.
 - Fixed Unix process liveness detection when process probes return `EPERM`.
 
 ## 0.1.3

@@ -48,6 +48,44 @@ test('installs, selects, and removes a local pet', async () => withTempHome(() =
   assert.equal(pets.currentPetId(), 'uni');
 }));
 
+test('validates and imports a local pet directory', async () => withTempHome((temp) => {
+  const source = path.join(temp, 'source-pet');
+  fs.mkdirSync(source, { recursive: true });
+  fs.writeFileSync(path.join(source, 'spritesheet.webp'), Buffer.from('fake-webp'));
+  fs.writeFileSync(path.join(source, 'pet.json'), JSON.stringify({
+    id: 'Local Robot',
+    displayName: 'Local Robot',
+    description: 'Local test pet',
+    spritesheetPath: 'spritesheet.webp',
+    frameWidth: 192,
+    frameHeight: 208,
+    columns: 8,
+    rows: 9,
+  }));
+
+  const validation = pets.validatePetDirectory(source);
+  assert.equal(validation.valid, true);
+  assert.equal(validation.pet.id, 'local-robot');
+
+  const imported = pets.importPetDirectory(source, { localId: 'robot-one' });
+  assert.equal(imported.id, 'robot-one');
+  assert.equal(fs.existsSync(path.join(imported.dir, 'spritesheet.webp')), true);
+}));
+
+test('rejects pet directories with unsafe spritesheet paths', async () => withTempHome((temp) => {
+  const source = path.join(temp, 'unsafe-pet');
+  fs.mkdirSync(source, { recursive: true });
+  fs.writeFileSync(path.join(source, 'pet.json'), JSON.stringify({
+    id: 'unsafe',
+    displayName: 'Unsafe',
+    spritesheetPath: '../outside.webp',
+  }));
+
+  const validation = pets.validatePetDirectory(source);
+  assert.equal(validation.valid, false);
+  assert.match(validation.errors.join('\n'), /inside the pet directory/);
+}));
+
 test('does not remove the built-in pet', async () => withTempHome(() => {
   assert.throws(() => pets.removePet('uni'), /built-in pet cannot be removed/);
 }));

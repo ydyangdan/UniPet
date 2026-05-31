@@ -5,6 +5,7 @@ const { pathToFileURL } = require('url');
 
 const BUILTIN_PET_ID = 'uni';
 const DEFAULT_SPRITESHEET = 'spritesheet.webp';
+const MAX_SPRITESHEET_BYTES = 16 * 1024 * 1024;
 
 function unipetHome() {
   return process.env.UNIPET_HOME || path.join(os.homedir(), '.unipet');
@@ -72,6 +73,80 @@ function readManifest(dir) {
     spritesheetAbs,
     installedAt: Number(manifest.installedAt || 0),
     manifest,
+  };
+}
+
+function isInside(parentDir, childPath) {
+  const parent = path.resolve(parentDir);
+  const child = path.resolve(childPath);
+  return child === parent || child.startsWith(`${parent}${path.sep}`);
+}
+
+function validatePetDirectory(dir) {
+  const petDir = path.resolve(String(dir || ''));
+  const errors = [];
+  const warnings = [];
+  let manifest = null;
+  let spritesheetAbs = '';
+  let spritesheetPath = DEFAULT_SPRITESHEET;
+  let id = cleanPetId(path.basename(petDir));
+
+  if (!fs.existsSync(petDir) || !fs.statSync(petDir).isDirectory()) {
+    errors.push(`pet directory not found: ${petDir}`);
+  } else {
+    const manifestPath = path.join(petDir, 'pet.json');
+    manifest = readJson(manifestPath);
+    if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+      errors.push(`pet.json must be a JSON object: ${manifestPath}`);
+    } else {
+      id = cleanPetId(manifest.id || id);
+      if (!id) errors.push('pet id is required');
+      if (id === BUILTIN_PET_ID) errors.push(`pet id is reserved: ${BUILTIN_PET_ID}`);
+      if (!manifest.displayName && !manifest.name) warnings.push('displayName is missing; id will be shown');
+
+      spritesheetPath = String(manifest.spritesheetPath || DEFAULT_SPRITESHEET);
+      spritesheetAbs = path.resolve(petDir, spritesheetPath);
+      if (!isInside(petDir, spritesheetAbs)) {
+        errors.push('spritesheetPath must stay inside the pet directory');
+      } else if (!fs.existsSync(spritesheetAbs)) {
+        errors.push(`spritesheet not found: ${spritesheetPath}`);
+      } else {
+        const stat = fs.statSync(spritesheetAbs);
+        const ext = path.extname(spritesheetAbs).toLowerCase();
+        if (!stat.isFile()) errors.push(`spritesheet is not a file: ${spritesheetPath}`);
+        if (stat.size <= 0) errors.push('spritesheet is empty');
+        if (stat.size > MAX_SPRITESHEET_BYTES) errors.push(`spritesheet is too large: ${stat.size} bytes`);
+        if (!['.webp', '.png'].includes(ext)) warnings.push('spritesheet should be a .webp or .png image');
+      }
+
+      const geometry = [
+        ['frameWidth', 192],
+        ['frameHeight', 208],
+        ['columns', 8],
+        ['rows', 9],
+      ];
+      for (const [field, expected] of geometry) {
+        if (manifest[field] !== undefined && Number(manifest[field]) !== expected) {
+          errors.push(`${field} must be ${expected} for the current spritesheet renderer`);
+        }
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    pet: {
+      id,
+      dir: petDir,
+      displayName: String(manifest && (manifest.displayName || manifest.name) || id || ''),
+      description: String(manifest && manifest.description || ''),
+      source: String(manifest && manifest.source || 'local-import'),
+      spritesheetPath,
+      spritesheetAbs,
+      manifest,
+    },
   };
 }
 
@@ -189,6 +264,28 @@ function installPetAsset({ id, displayName, description, source, spritesheetBuff
   return getPet(clean);
 }
 
+function importPetDirectory(dir, { localId = '' } = {}) {
+  const validation = validatePetDirectory(dir);
+  if (!validation.valid) {
+    throw new Error(validation.errors.join('; '));
+  }
+  const pet = validation.pet;
+  const spritesheetBuffer = fs.readFileSync(pet.spritesheetAbs);
+  return installPetAsset({
+    id: localId || pet.id,
+    displayName: pet.displayName,
+    description: pet.description,
+    source: pet.source || 'local-import',
+    spritesheetBuffer,
+    sourceMeta: {
+      source: 'local-import',
+      importedFrom: pet.dir,
+      manifest: pet.manifest,
+      warnings: validation.warnings,
+    },
+  });
+}
+
 function rendererPetConfig(pet = currentPet()) {
   const resolved = pet || builtinPet();
   return {
@@ -209,11 +306,14 @@ module.exports = {
   currentPet,
   currentPetId,
   getPet,
+  importPetDirectory,
   installPetAsset,
   listPets,
+  MAX_SPRITESHEET_BYTES,
   petsRoot,
   removePet,
   rendererPetConfig,
   setCurrentPet,
   unipetHome,
+  validatePetDirectory,
 };

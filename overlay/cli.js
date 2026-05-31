@@ -701,6 +701,42 @@ async function cmdPet(args) {
     }
     return 0;
   }
+  if (subcommand === 'validate') {
+    const target = rest.slice(1).join(' ').trim();
+    if (!target) {
+      console.error('Usage: unipet pet validate <pet-dir>');
+      return 1;
+    }
+    const result = pets.validatePetDirectory(target);
+    console.log(`Pet: ${result.pet.id || '?'} (${result.pet.displayName || '?'})`);
+    console.log(`  path: ${result.pet.dir}`);
+    console.log(`  valid: ${result.valid ? 'yes' : 'no'}`);
+    for (const warning of result.warnings) console.log(`  warning: ${warning}`);
+    for (const error of result.errors) console.log(`  error: ${error}`);
+    return result.valid ? 0 : 1;
+  }
+  if (subcommand === 'import') {
+    const target = rest.slice(1).join(' ').trim();
+    if (!target) {
+      console.error('Usage: unipet pet import <pet-dir> [--as local-id] [--use]');
+      return 1;
+    }
+    const imported = pets.importPetDirectory(target, { localId: options.as || '' });
+    console.log(`Imported pet: ${imported.id} (${imported.displayName})`);
+    console.log(`  path: ${imported.dir}`);
+    if (options.use) {
+      pets.setCurrentPet(imported.id);
+      let hotReloaded = false;
+      try {
+        hotReloaded = await notifyPetChangeIfRunning(imported.id);
+      } catch (err) {
+        console.error(`Warning: imported and selected pet, but running overlay was not updated: ${err.message}`);
+      }
+      console.log(`  current pet -> ${imported.id}`);
+      console.log(hotReloaded ? '  overlay updated' : '  start UniPet to see it');
+    }
+    return 0;
+  }
   if (subcommand === 'use') {
     if (!id) {
       console.error('Usage: unipet pet use <pet-id>');
@@ -735,7 +771,7 @@ async function cmdPet(args) {
     return 0;
   }
   console.error(`Unknown pet command: ${subcommand}`);
-  console.error('Usage: unipet pet <list|current|search|info|install|use|remove>');
+  console.error('Usage: unipet pet <list|current|search|info|install|validate|import|use|remove>');
   return 1;
 }
 
@@ -840,7 +876,7 @@ Commands:
   unipet clear
   unipet state <idle|running|waiting|failed|review> <message> [--source id] [--ttl duration]
   unipet agent <list|status|add|disable|remove>
-  unipet pet <list|current|search|info|install|use|remove>
+  unipet pet <list|current|search|info|install|validate|import|use|remove>
 `);
 }
 
