@@ -29,7 +29,7 @@ const STATE_DEFAULT_TTL = Object.freeze({
   running: 120000,
   waiting: 120000,
   failed: 20000,
-  review: 12000,
+  review: 8000,
 });
 
 function sleep(ms) {
@@ -415,6 +415,7 @@ async function cmdStatus() {
   const live = await liveRuntime();
   if (!live) {
     console.log('UniPet: not running');
+    console.log('  run: unipet start');
     return 0;
   }
   const { runtime, currentHealth } = live;
@@ -426,11 +427,33 @@ async function cmdStatus() {
   if (view.currentPet) {
     console.log(`  current pet: ${view.currentPet.id} (${view.currentPet.displayName || view.currentPet.id})`);
   }
-  console.log(`  active state: ${view.activeState || 'idle'}`);
+  const active = view.activePet || null;
+  console.log(`  active state: ${view.activeState || 'idle'}${active ? ` from ${active.source}` : ''}`);
+  console.log(`  sources: ${(view.pets || []).length}`);
   for (const pet of view.pets || []) {
-    console.log(`  [${pet.source}] ${pet.state}: ${String(pet.message || '').slice(0, 60)}`);
+    console.log(`  [${pet.source}] ${pet.state}${formatExpiry(pet)}: ${String(pet.message || '').slice(0, 60)}`);
   }
   return 0;
+}
+
+function formatExpiry(pet) {
+  if (!pet || pet.ttl === null || pet.ttl === undefined) return '';
+  const expiresAt = Number(pet.updatedAt || 0) + Number(pet.ttl || 0) / 1000;
+  const remaining = Math.ceil(expiresAt - Date.now() / 1000);
+  if (!Number.isFinite(remaining)) return '';
+  if (remaining <= 0) return ' expiring';
+  return ` ${formatDuration(remaining)}`;
+}
+
+function formatDuration(seconds) {
+  const total = Math.max(0, Math.round(seconds));
+  if (total < 60) return `${total}s`;
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  if (minutes < 60) return rest ? `${minutes}m${rest}s` : `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const minuteRest = minutes % 60;
+  return minuteRest ? `${hours}h${minuteRest}m` : `${hours}h`;
 }
 
 async function notifyPetChangeIfRunning(id) {
@@ -543,17 +566,20 @@ async function cmdClear() {
 }
 
 const DEMO_STEPS = Object.freeze([
-  { state: 'running', message: 'Reading project context', ttl: '8s' },
-  { state: 'running', message: 'Running tools', ttl: '8s' },
-  { state: 'waiting', message: 'Waiting for approval', ttl: '8s' },
-  { state: 'failed', message: 'Command failed', ttl: '8s' },
-  { state: 'review', message: 'Ready for review', ttl: '12s' },
+  { state: 'idle', message: 'UniPet ready', ttl: '2s' },
+  { state: 'running', message: 'read_file package.json', ttl: '8s' },
+  { state: 'running', message: 'apply_patch renderer.js', ttl: '8s' },
+  { state: 'running', message: 'exec_shell npm test', ttl: '8s' },
+  { state: 'running', message: 'fetch project context', ttl: '8s' },
+  { state: 'waiting', message: 'Waiting for approval', ttl: '2m' },
+  { state: 'failed', message: 'Command failed with timeout', ttl: '12s' },
+  { state: 'review', message: 'All tests passed', ttl: '8s' },
 ]);
 
 async function cmdDemo(args) {
   const { options } = parseOptions(args);
   const source = options.source || 'demo';
-  const rawStep = options.step || options.interval || '1500ms';
+  const rawStep = options.step || options.interval || '1200ms';
   const stepMs = normalizeTtl(rawStep);
   if (stepMs === null) {
     console.error('Step duration must look like 1500ms, 2s, or 1m.');
@@ -578,7 +604,7 @@ async function cmdDemo(args) {
     console.log(`  ${step.state.padEnd(7)} ${step.message}`);
     await sleep(stepMs);
   }
-  console.log('Demo complete. Run `unipet clear` to return to idle.');
+  console.log('Demo complete. Run `unipet clear` to return to idle now.');
   return 0;
 }
 
@@ -591,6 +617,7 @@ async function cmdDoctor() {
   console.log(`  current pet: ${pets.currentPetId()}`);
   console.log(`  electron: ${electronBinary() ? 'ok' : 'missing'}`);
   console.log(`  runtime file: ${fs.existsSync(runtimePath()) ? runtimePath() : 'missing'}`);
+  console.log(`  connectors: ${connectorLifecycle.connectorList().length} available (run 'unipet agent status' for details)`);
   const live = await liveRuntime();
   if (!live) {
     console.log('  runtime: not running');
@@ -809,7 +836,7 @@ Commands:
   unipet status
   unipet doctor
   unipet stop
-  unipet demo [--source demo] [--step 1500ms]
+  unipet demo [--source demo] [--step 1200ms]
   unipet clear
   unipet state <idle|running|waiting|failed|review> <message> [--source id] [--ttl duration]
   unipet agent <list|status|add|disable|remove>
