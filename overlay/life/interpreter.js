@@ -5,11 +5,23 @@
  * choose spritesheet rows; it only describes what the pet should feel like.
  */
 (function initLifeInterpreter(root, factory) {
-  const api = factory();
+  const bubble = typeof module === 'object' && module.exports
+    ? require('./bubble')
+    : root.UnipetLifeBubble;
+  const api = factory(bubble);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.UnipetLifeInterpreter = api;
-})(typeof window !== 'undefined' ? window : globalThis, function lifeInterpreterFactory() {
-  const MESSAGE_LIMIT = 20;
+})(typeof window !== 'undefined' ? window : globalThis, function lifeInterpreterFactory(bubble) {
+  const bubblePolicy = bubble || {
+    MESSAGE_LIMIT: 20,
+    clipBubbleText(text, limit = 20) {
+      const raw = String(text || '').trim().replace(/\s+/g, ' ');
+      const chars = Array.from(raw);
+      if (chars.length <= limit) return raw;
+      return `${chars.slice(0, limit).join('')}...`;
+    },
+  };
+  const MESSAGE_LIMIT = bubblePolicy.MESSAGE_LIMIT;
 
   function keywordPattern(words) {
     return new RegExp(`(^|[^a-z0-9])(${words.join('|')})([^a-z0-9]|$)`, 'i');
@@ -116,13 +128,6 @@
     },
   ];
 
-  function clipBubbleText(text, limit = MESSAGE_LIMIT) {
-    const raw = String(text || '').trim().replace(/\s+/g, ' ');
-    const chars = Array.from(raw);
-    if (chars.length <= limit) return raw;
-    return `${chars.slice(0, limit).join('')}...`;
-  }
-
   function normalizeState(state) {
     const value = String(state || 'idle').toLowerCase();
     return STATE_SIGNALS[value] ? value : 'idle';
@@ -154,7 +159,7 @@
       urgency: selected.urgency,
       energyDelta: selected.energyDelta,
       motion: selected.motion,
-      bubbleText: clipBubbleText(message),
+      bubbleText: bubblePolicy.clipBubbleText(message),
     };
   }
 
@@ -162,7 +167,7 @@
     MESSAGE_LIMIT,
     STATE_SIGNALS,
     MESSAGE_SIGNALS,
-    clipBubbleText,
+    clipBubbleText: bubblePolicy.clipBubbleText,
     interpretEvent,
   };
 });

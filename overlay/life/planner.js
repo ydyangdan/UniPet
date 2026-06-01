@@ -5,13 +5,21 @@
  * map these intents to spritesheets, CSS, canvas, or a future lighter shell.
  */
 (function initLifePlanner(root, factory) {
-  const interpreter = typeof module === 'object' && module.exports
-    ? require('./interpreter')
-    : root.UnipetLifeInterpreter;
-  const api = factory(interpreter);
+  const deps = typeof module === 'object' && module.exports
+    ? {
+        interpreter: require('./interpreter'),
+        bubble: require('./bubble'),
+      }
+    : {
+        interpreter: root.UnipetLifeInterpreter,
+        bubble: root.UnipetLifeBubble,
+      };
+  const api = factory(deps.interpreter, deps.bubble);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.UnipetLifePlanner = api;
-})(typeof window !== 'undefined' ? window : globalThis, function lifePlannerFactory(interpreter) {
+})(typeof window !== 'undefined' ? window : globalThis, function lifePlannerFactory(interpreter, bubble) {
+  const bubblePolicy = bubble || { durationFor: () => 0 };
+
   const DEFAULT_LIFE_STATE = {
     mood: 'calm',
     energy: 42,
@@ -22,25 +30,25 @@
   };
 
   const STATE_INTENTS = {
-    idle: { animation: 'idle', fps: 0.6, emotion: 'calm', motion: 'idle', bubbleMs: 0, tempo: 'quiet' },
-    running: { animation: 'running', fps: 5, emotion: 'focused', motion: 'work', bubbleMs: 4500, tempo: 'normal' },
-    waiting: { animation: 'waiting', fps: 2.6, emotion: 'curious', motion: 'wait', bubbleMs: 10000, tempo: 'slow' },
-    failed: { animation: 'failed', fps: 3.2, emotion: 'frustrated', effect: 'shake', motion: 'alert', bubbleMs: 9000, tempo: 'fast' },
-    review: { animation: 'review', fps: 2.8, emotion: 'happy', effect: 'bounce', motion: 'idle', bubbleMs: 6500, tempo: 'slow' },
+    idle: { animation: 'idle', fps: 0.6, emotion: 'calm', motion: 'idle', tempo: 'quiet' },
+    running: { animation: 'running', fps: 5, emotion: 'focused', motion: 'work', tempo: 'normal' },
+    waiting: { animation: 'waiting', fps: 2.6, emotion: 'curious', motion: 'wait', tempo: 'slow' },
+    failed: { animation: 'failed', fps: 3.2, emotion: 'frustrated', effect: 'shake', motion: 'alert', tempo: 'fast' },
+    review: { animation: 'review', fps: 2.8, emotion: 'happy', effect: 'bounce', motion: 'idle', tempo: 'slow' },
   };
 
   const KIND_INTENTS = {
-    failure: { animation: 'failed', fps: 3.6, emotion: 'frustrated', effect: 'shake', motion: 'alert', bubbleMs: 9000, tempo: 'fast' },
-    success: { animation: 'review', fps: 3.2, emotion: 'happy', effect: 'bounce', motion: 'idle', bubbleMs: 6500, tempo: 'slow' },
-    permission: { animation: 'waiting', fps: 2.4, emotion: 'curious', motion: 'wait', bubbleMs: 12000, tempo: 'slow' },
-    delegate: { animation: 'jumping', fps: 5, emotion: 'excited', effect: 'bounce', motion: 'work', bubbleMs: 5000, tempo: 'fast' },
-    test: { animation: 'running', fps: 5.4, emotion: 'focused', motion: 'work', bubbleMs: 4200, tempo: 'fast' },
-    build: { animation: 'running_right', fps: 5, emotion: 'focused', motion: 'work', bubbleMs: 4200, tempo: 'normal' },
-    network: { animation: 'waving', fps: 4.2, emotion: 'focused', motion: 'scan', bubbleMs: 4500, tempo: 'normal' },
-    write: { animation: 'running_right', fps: 4.8, emotion: 'focused', motion: 'work', bubbleMs: 4500, tempo: 'normal' },
-    read: { animation: 'running_left', fps: 4.2, emotion: 'focused', motion: 'scan', bubbleMs: 4200, tempo: 'normal' },
-    shell: { animation: 'running', fps: 5, emotion: 'focused', motion: 'work', bubbleMs: 4200, tempo: 'normal' },
-    thinking: { animation: 'running', fps: 2.2, emotion: 'focused', motion: 'think', bubbleMs: 5500, tempo: 'slow' },
+    failure: { animation: 'failed', fps: 3.6, emotion: 'frustrated', effect: 'shake', motion: 'alert', tempo: 'fast' },
+    success: { animation: 'review', fps: 3.2, emotion: 'happy', effect: 'bounce', motion: 'idle', tempo: 'slow' },
+    permission: { animation: 'waiting', fps: 2.4, emotion: 'curious', motion: 'wait', tempo: 'slow' },
+    delegate: { animation: 'jumping', fps: 5, emotion: 'excited', effect: 'bounce', motion: 'work', tempo: 'fast' },
+    test: { animation: 'running', fps: 5.4, emotion: 'focused', motion: 'work', tempo: 'fast' },
+    build: { animation: 'running_right', fps: 5, emotion: 'focused', motion: 'work', tempo: 'normal' },
+    network: { animation: 'waving', fps: 4.2, emotion: 'focused', motion: 'scan', tempo: 'normal' },
+    write: { animation: 'running_right', fps: 4.8, emotion: 'focused', motion: 'work', tempo: 'normal' },
+    read: { animation: 'running_left', fps: 4.2, emotion: 'focused', motion: 'scan', tempo: 'normal' },
+    shell: { animation: 'running', fps: 5, emotion: 'focused', motion: 'work', tempo: 'normal' },
+    thinking: { animation: 'running', fps: 2.2, emotion: 'focused', motion: 'think', tempo: 'slow' },
   };
 
   function clamp(value, min, max) {
@@ -84,7 +92,7 @@
       energy: life.energy,
       attention: life.attention,
       fallbackAnimation: fallbackAnimationFor(signal.state),
-      bubbleMs: kindIntent.bubbleMs || stateIntent.bubbleMs || 0,
+      bubbleMs: bubblePolicy.durationFor(signal),
       tempo: kindIntent.tempo || stateIntent.tempo || 'normal',
       life,
     };
