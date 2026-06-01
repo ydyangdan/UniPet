@@ -57,10 +57,20 @@ test('validates and imports a local pet directory', async () => withTempHome((te
     displayName: 'Local Robot',
     description: 'Local test pet',
     spritesheetPath: 'spritesheet.webp',
-    frameWidth: 192,
-    frameHeight: 208,
-    columns: 8,
-    rows: 9,
+    frame: {
+      width: 192,
+      height: 208,
+      columns: 8,
+      rows: 9,
+    },
+    animations: {
+      wave: {
+        frames: [{ spriteIndex: 24, durationMs: 220 }, 25],
+        fps: 8,
+        loop: false,
+        fallback: 'idle',
+      },
+    },
   }));
 
   const validation = pets.validatePetDirectory(source);
@@ -70,6 +80,11 @@ test('validates and imports a local pet directory', async () => withTempHome((te
   const imported = pets.importPetDirectory(source, { localId: 'robot-one' });
   assert.equal(imported.id, 'robot-one');
   assert.equal(fs.existsSync(path.join(imported.dir, 'spritesheet.webp')), true);
+  assert.equal(imported.manifest.animations.wave.frames[0].spriteIndex, 24);
+
+  const config = pets.rendererPetConfig(imported);
+  assert.equal(config.manifest.id, 'robot-one');
+  assert.equal(config.manifest.animations.wave.fallback, 'idle');
 }));
 
 test('rejects pet directories with unsafe spritesheet paths', async () => withTempHome((temp) => {

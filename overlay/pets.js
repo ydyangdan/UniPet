@@ -76,6 +76,18 @@ function readManifest(dir) {
   };
 }
 
+function manifestFrame(manifest = {}) {
+  const frame = manifest && typeof manifest.frame === 'object' && manifest.frame
+    ? manifest.frame
+    : {};
+  return {
+    width: Number(frame.width ?? manifest.frameWidth ?? 192),
+    height: Number(frame.height ?? manifest.frameHeight ?? 208),
+    columns: Number(frame.columns ?? manifest.columns ?? 8),
+    rows: Number(frame.rows ?? manifest.rows ?? 9),
+  };
+}
+
 function isInside(parentDir, childPath) {
   const parent = path.resolve(parentDir);
   const child = path.resolve(childPath);
@@ -119,16 +131,15 @@ function validatePetDirectory(dir) {
         if (!['.webp', '.png'].includes(ext)) warnings.push('spritesheet should be a .webp or .png image');
       }
 
+      const frame = manifestFrame(manifest);
       const geometry = [
-        ['frameWidth', 192],
-        ['frameHeight', 208],
-        ['columns', 8],
-        ['rows', 9],
+        ['frame width', frame.width, 192],
+        ['frame height', frame.height, 208],
+        ['frame columns', frame.columns, 8],
+        ['frame rows', frame.rows, 9],
       ];
-      for (const [field, expected] of geometry) {
-        if (manifest[field] !== undefined && Number(manifest[field]) !== expected) {
-          errors.push(`${field} must be ${expected} for the current spritesheet renderer`);
-        }
+      for (const [label, actual, expected] of geometry) {
+        if (actual !== expected) errors.push(`${label} must be ${expected} for the current spritesheet renderer`);
       }
     }
   }
@@ -228,7 +239,7 @@ function removePet(id) {
   return { removed: pet, current: currentPet(), wasCurrent };
 }
 
-function installPetAsset({ id, displayName, description, source, spritesheetBuffer, sourceMeta }) {
+function installPetAsset({ id, displayName, description, source, spritesheetBuffer, sourceMeta, manifest: sourceManifest }) {
   const clean = cleanPetId(id);
   if (!clean) throw new Error('pet id required');
   if (clean === BUILTIN_PET_ID) throw new Error(`pet id is reserved: ${BUILTIN_PET_ID}`);
@@ -242,16 +253,27 @@ function installPetAsset({ id, displayName, description, source, spritesheetBuff
   fs.rmSync(staging, { recursive: true, force: true });
   fs.mkdirSync(staging, { recursive: true });
 
+  const originalManifest = sourceManifest && typeof sourceManifest === 'object' && !Array.isArray(sourceManifest)
+    ? sourceManifest
+    : {};
+  const frame = manifestFrame(originalManifest);
   const manifest = {
+    ...originalManifest,
     id: clean,
     displayName: String(displayName || clean),
     description: String(description || ''),
     source: String(source || 'local'),
     spritesheetPath: DEFAULT_SPRITESHEET,
-    frameWidth: 192,
-    frameHeight: 208,
-    columns: 8,
-    rows: 9,
+    frame: {
+      width: frame.width,
+      height: frame.height,
+      columns: frame.columns,
+      rows: frame.rows,
+    },
+    frameWidth: frame.width,
+    frameHeight: frame.height,
+    columns: frame.columns,
+    rows: frame.rows,
     installedAt: Date.now(),
   };
 
@@ -277,6 +299,7 @@ function importPetDirectory(dir, { localId = '' } = {}) {
     description: pet.description,
     source: pet.source || 'local-import',
     spritesheetBuffer,
+    manifest: pet.manifest,
     sourceMeta: {
       source: 'local-import',
       importedFrom: pet.dir,
@@ -296,6 +319,7 @@ function rendererPetConfig(pet = currentPet()) {
     builtin: Boolean(resolved.builtin),
     spritesheetUrl: pathToFileURL(resolved.spritesheetAbs).href,
     manifestUrl: pathToFileURL(resolved.manifestPath).href,
+    manifest: resolved.manifest || {},
   };
 }
 

@@ -17,10 +17,20 @@ Minimal `pet.json`:
   "displayName": "My Pet",
   "description": "A local UniPet skin.",
   "spritesheetPath": "spritesheet.webp",
-  "frameWidth": 192,
-  "frameHeight": 208,
-  "columns": 8,
-  "rows": 9
+  "frame": {
+    "width": 192,
+    "height": 208,
+    "columns": 8,
+    "rows": 9
+  },
+  "animations": {
+    "wave": {
+      "frames": [24, 25, 26, 27],
+      "fps": 8,
+      "loop": false,
+      "fallback": "idle"
+    }
+  }
 }
 ```
 
@@ -32,6 +42,36 @@ Minimal `pet.json`:
 - Current renderer states:
   `idle`, `running_right`, `running_left`, `waving`, `jumping`, `failed`,
   `waiting`, `running`, and `review`.
+- `frameWidth`, `frameHeight`, `columns`, and `rows` are still accepted for
+  older UniPet manifests. New pets should prefer the Codex-style `frame` object.
+
+## Animations
+
+Animations are Codex-style tracks. A track can use a compact frame list plus
+`fps`, or explicit frame durations:
+
+```json
+{
+  "animations": {
+    "idle": {
+      "frames": [
+        { "spriteIndex": 0, "durationMs": 1680 },
+        { "spriteIndex": 1, "durationMs": 660 }
+      ],
+      "loop_start": 0
+    },
+    "jumping": {
+      "frames": [32, 33, 34, 35, 36],
+      "fps": 8,
+      "loop": false,
+      "fallback": "idle"
+    }
+  }
+}
+```
+
+`loop_start` and `loopStart` are both accepted. Set `loop` to `false`, or
+`loop_start` to `null`, for one-shot animations that should fall back to `idle`.
 
 ## Validate And Import
 
@@ -41,8 +81,9 @@ unipet pet import ./my-pet --use
 ```
 
 `validate` checks the manifest, spritesheet path, file size, and renderer
-geometry. `import` copies the pet into `~/.unipet/pets` and can hot-reload the
-running overlay when `--use` is passed.
+geometry. `import` copies the pet into `~/.unipet/pets`, preserves the original
+animation manifest, and can hot-reload the running overlay when `--use` is
+passed.
 
 ## Safety Rules
 

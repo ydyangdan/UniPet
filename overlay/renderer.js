@@ -10,7 +10,13 @@ const spritesheet = window.UnipetSpritesheetAdapter || {
     readRenderScale: () => 0.5,
     displaySize: () => ({ width: 96, height: 104 }),
     backgroundSize: () => ({ width: 768, height: 936 }),
-    getAnimation: () => ({ row: 0, frames: 6, fps: 6, loop: true }),
+    configure: () => ({}),
+    getAnimation: () => ({
+        frames: Array.from({ length: 6 }, (_, index) => ({ spriteIndex: index, durationMs: 166 })),
+        loopStart: 0,
+        fallback: 'idle',
+    }),
+    getFrame: (stateName, frame) => ({ spriteIndex: Math.max(0, frame || 0), durationMs: 166 }),
     framePosition: (stateName, frame) => `-${Math.max(0, frame || 0) * 96}px 0`,
 };
 const RENDER_SCALE = spritesheet.readRenderScale(new URLSearchParams(window.location.search).get('scale'));
@@ -140,6 +146,14 @@ const anim = {
 
     applyPetConfig(config) {
         if (!config || !config.spritesheetUrl) return;
+        if (spritesheet.configure) {
+            try {
+                spritesheet.configure(config.manifest || {});
+                configureSpriteSize();
+            } catch (error) {
+                console.warn('Invalid pet manifest, keeping previous animation model:', error.message);
+            }
+        }
         this.petId = config.id || this.petId;
         this.loadSpritesheet(config.spritesheetUrl);
         spriteEl.removeAttribute('title');
@@ -164,7 +178,7 @@ const anim = {
         const previousBridgeState = this.currentBridgeState;
         const nextBridgeState = intent.state || 'idle';
         const isSettling = previousBridgeState !== 'idle' && nextBridgeState === 'idle';
-        const fps = intent.fps || cfg.fps;
+        const fps = intent.fps || null;
 
         this.currentBridgeState = nextBridgeState;
         motion.apply(intent);
@@ -173,7 +187,7 @@ const anim = {
         }
 
         // Keep looping animations running while still updating fresh messages.
-        if (this.currentState === normalized && cfg.loop) {
+        if (this.currentState === normalized && this.animationLoops(cfg)) {
             if (this.currentFps !== fps) this.startLoop(fps);
             if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState, intent.bubbleMs);
             statusEl.textContent = nextBridgeState;
@@ -186,10 +200,9 @@ const anim = {
         this.currentFrame = 0;
         this.renderFrame();
 
-        if (cfg.loop) {
+        if (this.animationLoops(cfg)) {
             this.startLoop(fps);
         } else {
-            // One-shot: play through frames, then fall back
             this.startOneShot(cfg, intent.fallbackAnimation, fps);
         }
 
@@ -208,39 +221,74 @@ const anim = {
         );
     },
 
-    /** Start looping animation at given FPS. */
-    startLoop(fps) {
+    animationLoops(cfg) {
+        return Number.isInteger(cfg && cfg.loopStart);
+    },
 
+    frameDuration(cfg, frameIndex, fpsOverride) {
+        if (fpsOverride) return Math.max(16, Math.round(1000 / fpsOverride));
+        const frame = spritesheet.getFrame
+            ? spritesheet.getFrame(this.currentState, frameIndex)
+            : ((cfg && cfg.frames || [])[frameIndex]);
+        return Math.max(16, Number(frame && frame.durationMs || 166));
+    },
+
+    /** Start animation playback, honoring per-frame durations when available. */
+    startLoop(fps) {
+        this.startAnimation(fps);
+    },
+
+    startAnimation(fps, fallbackState, frameLimit) {
         this.stopLoop();
-        this.currentFps = fps;
-        const interval = 1000 / fps;
-        this.frameTimer = setInterval(() => {
+        this.currentFps = fps || null;
+        this.currentFallbackState = fallbackState || null;
+        this.currentFrameLimit = Number.isInteger(frameLimit) ? frameLimit : null;
+        this.scheduleNextFrame();
+    },
+
+    scheduleNextFrame() {
+        const cfg = this.getConfig(this.currentState);
+        const duration = this.frameDuration(cfg, this.currentFrame, this.currentFps);
+        this.frameTimer = setTimeout(() => {
             const cfg = this.getConfig(this.currentState);
-            this.currentFrame = (this.currentFrame + 1) % cfg.frames;
+            const frames = cfg.frames || [];
+            const loopStart = this.animationLoops(cfg) ? cfg.loopStart : null;
+            const limit = this.currentFrameLimit || frames.length;
+            let nextFrame = this.currentFrame + 1;
+
+            if (nextFrame >= limit) {
+                if (this.currentFallbackState) {
+                    this.stopLoop();
+                    this.currentState = this.currentFallbackState;
+                    this.currentFrame = 0;
+                    this.renderFrame();
+                    this.startLoop();
+                    return;
+                }
+                if (loopStart !== null) nextFrame = loopStart;
+            }
+
+            if (nextFrame >= frames.length) {
+                const fallback = cfg.fallback || 'idle';
+                this.stopLoop();
+                this.currentState = fallback;
+                this.currentFrame = 0;
+                this.renderFrame();
+                this.startLoop();
+                return;
+            }
+
+            this.currentFrame = nextFrame;
             this.renderFrame();
-        }, interval);
+            this.scheduleNextFrame();
+        }, duration);
     },
 
     /** Play a one-shot animation, then return to a real bridge state. */
     startOneShot(cfg, fallbackState, fallbackFps) {
         const fallback = fallbackState || cfg.fallback || 'idle';
-        const totalFrames = cfg.frames;
-        let played = 1;
-        const interval = 1000 / (fallbackFps || cfg.fps);
-
-        this.frameTimer = setInterval(() => {
-            if (played >= totalFrames) {
-                this.stopLoop();
-                this.currentState = fallback;
-                this.currentFrame = 0;
-                this.renderFrame();
-                this.startLoop(fallbackFps || this.getConfig(fallback).fps);
-                return;
-            }
-            this.currentFrame = played;
-            this.renderFrame();
-            played++;
-        }, interval);
+        const totalFrames = cfg.primaryFrameCount || (cfg.frames || []).length;
+        this.startAnimation(fallbackFps, fallback, totalFrames);
     },
 
     playPreview(stateName) {
@@ -249,7 +297,7 @@ const anim = {
             : 'idle';
         const normalized = stateName || 'idle';
         const cfg = this.getConfig(normalized);
-        if (cfg.loop || this.currentState === normalized) return;
+        if (this.currentState === normalized) return;
 
         this.stopLoop();
         this.currentState = normalized;
@@ -263,28 +311,28 @@ const anim = {
         const returnState = this.currentState || 'idle';
         const normalized = stateName || 'idle';
         const cfg = this.getConfig(normalized);
-        if (!cfg.loop || this.currentState === normalized) return;
+        if (!this.animationLoops(cfg) || this.currentState === normalized) return;
 
         clearTimeout(this.temporaryTimer);
         this.stopLoop();
         this.currentState = normalized;
         this.currentFrame = 0;
         this.renderFrame();
-        this.startLoop(fps || cfg.fps);
+        this.startLoop(fps || null);
         this.temporaryTimer = setTimeout(() => {
             if (this.currentBridgeState !== 'idle') return;
             this.stopLoop();
             this.currentState = returnState;
             this.currentFrame = 0;
             this.renderFrame();
-            this.startLoop(this.getConfig(returnState).fps);
+            this.startLoop();
         }, duration || 900);
     },
 
     playDrag(direction) {
         const normalized = direction === 'left' ? 'running_left' : 'running_right';
         const cfg = this.getConfig(normalized);
-        const fps = cfg.fps;
+        const fps = null;
 
         clearTimeout(this.temporaryTimer);
         setPrefixedClass('direction-', direction === 'left' ? 'left' : 'right');
@@ -305,7 +353,7 @@ const anim = {
         clearTimeout(this.settleTimer);
         this.settleTimer = setTimeout(() => {
             if (this.currentBridgeState !== 'idle' || this.currentState !== 'idle') return;
-            this.startLoop(this.getConfig('idle').fps);
+            this.startLoop();
         }, 1200);
     },
 
@@ -315,6 +363,8 @@ const anim = {
             this.frameTimer = null;
         }
         this.currentFps = null;
+        this.currentFallbackState = null;
+        this.currentFrameLimit = null;
     },
 
     /** Show a speech bubble for a few seconds. */
