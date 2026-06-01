@@ -57,3 +57,36 @@ test('accepts legacy fps animation specs and dashed aliases', () => {
   assert.equal(spritesheet.getAnimation('running_right', model).frames[0].durationMs, 200);
   assert.equal(spritesheet.framePosition('running-right', 1, 0.5, model), '-96px -104px');
 });
+
+test('keeps Codex-style default animation timing', () => {
+  const model = spritesheet.normalizeManifest({});
+  const idle = spritesheet.getAnimation('idle', model);
+
+  assert.deepEqual(idle.frames.map((frame) => frame.spriteIndex), [0, 1, 2, 3, 4, 5]);
+  assert.deepEqual(idle.frames.map((frame) => frame.durationMs), [1680, 660, 660, 840, 840, 1920]);
+  assert.equal(idle.loopStart, 0);
+
+  const states = [
+    ['running', 56, 6, 120, 220],
+    ['waiting', 48, 6, 150, 260],
+    ['failed', 40, 8, 140, 240],
+    ['review', 64, 6, 150, 280],
+  ];
+
+  for (const [name, firstSpriteIndex, frameCount, frameMs, finalFrameMs] of states) {
+    const animation = spritesheet.getAnimation(name, model);
+    const firstCycle = animation.frames.slice(0, frameCount);
+
+    assert.deepEqual(
+      firstCycle.map((frame) => frame.spriteIndex),
+      Array.from({ length: frameCount }, (_, index) => firstSpriteIndex + index),
+    );
+    assert.deepEqual(
+      firstCycle.map((frame) => frame.durationMs),
+      Array.from({ length: frameCount }, (_, index) => (index === frameCount - 1 ? finalFrameMs : frameMs)),
+    );
+    assert.equal(animation.primaryFrameCount, frameCount * 3);
+    assert.equal(animation.loopStart, frameCount * 3);
+    assert.deepEqual(animation.frames.slice(animation.loopStart).map((frame) => frame.spriteIndex), [0, 1, 2, 3, 4, 5]);
+  }
+});
