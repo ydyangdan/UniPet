@@ -41,28 +41,30 @@ Confirmed Codex model:
 - Rendering has a state object that remembers what was drawn so stale images can be cleared.
 - Built-in assets are validated and cached before the model layer loads them.
 
-## Current UniPet Gaps
+## Baseline Gaps and Batch Status
 
 These were identified from `PROJECT_ANALYSIS_2026-06-01.md` plus the current
 implementation:
 
-- `overlay/renderer.js` still advances a mutable frame counter with chained
-  timers. It honors durations but does not calculate the visible frame from
-  elapsed time like Codex.
-- `fps` is still allowed to override frame timing in the renderer, which weakens
-  manifest-owned timing.
-- Reduced motion exists only in CSS, not as an explicit renderer mode that stops
-  frame scheduling.
-- `overlay/pets.js` validates geometry by manifest values and file size, but it
-  does not decode image dimensions before import.
-- Market install is still metadata/spritesheet-first and does not preserve a
-  full remote manifest unless one is already provided by the caller.
-- The renderer mixes animation playback, life intent, bubbles, drag behavior,
-  idle moments, and visual effects in one large file.
-- Visual smoke coverage is still manual. Unit tests passing does not prove the
-  transparent overlay renders correctly on Windows.
-- Recovery handoff files are local working artifacts and must not enter Git or
-  npm packages.
+- Done: `overlay/renderer.js` now calculates the visible frame from elapsed time
+  and manifest-owned per-frame duration, including `loopStart` and fallback.
+- Done: renderer-level `fps` and unused `tempo-*` intent paths were removed.
+  `fps` remains only as a manifest compatibility input during normalization.
+- Done: reduced motion now renders a stable first frame and avoids scheduling
+  follow-up frame timers.
+- Done: `overlay/pets.js` decodes local PNG/WebP dimensions during validation and
+  rejects spritesheets that do not cover the Codex-compatible sheet.
+- Done: `npm run smoke:overlay` starts a temporary local runtime and verifies
+  state events plus current pet config.
+- Remaining: market install is still metadata/spritesheet-first and does not
+  preserve a full remote manifest unless one is already provided by the caller.
+- Remaining: the renderer still combines animation playback, life intent,
+  bubbles, drag behavior, idle moments, and visual effects in one large file.
+  Further splitting should be done only when it clearly reduces complexity.
+- Remaining: screenshot automation is still deferred until it is reliable on
+  Windows.
+- Ongoing: recovery handoff files are local working artifacts and must not enter
+  Git or npm packages.
 
 ## Execution Plan
 
