@@ -5,6 +5,18 @@ const path = require('node:path');
 const test = require('node:test');
 const pets = require('../pets');
 
+function spritesheetBuffer(width = 1536, height = 1872) {
+  const buffer = Buffer.alloc(33);
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(buffer, 0);
+  buffer.writeUInt32BE(13, 8);
+  buffer.write('IHDR', 12, 'ascii');
+  buffer.writeUInt32BE(width, 16);
+  buffer.writeUInt32BE(height, 20);
+  buffer[24] = 8;
+  buffer[25] = 6;
+  return buffer;
+}
+
 function withTempHome(fn) {
   const previous = process.env.UNIPET_HOME;
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'unipet-test-'));
@@ -31,7 +43,7 @@ test('installs, selects, and removes a local pet', async () => withTempHome(() =
     id: 'Market Cat!',
     displayName: 'Market Cat',
     source: 'test',
-    spritesheetBuffer: Buffer.from('fake-webp'),
+    spritesheetBuffer: spritesheetBuffer(),
   });
 
   assert.equal(installed.id, 'market-cat');
@@ -51,7 +63,7 @@ test('installs, selects, and removes a local pet', async () => withTempHome(() =
 test('validates and imports a local pet directory', async () => withTempHome((temp) => {
   const source = path.join(temp, 'source-pet');
   fs.mkdirSync(source, { recursive: true });
-  fs.writeFileSync(path.join(source, 'spritesheet.webp'), Buffer.from('fake-webp'));
+  fs.writeFileSync(path.join(source, 'spritesheet.webp'), spritesheetBuffer());
   fs.writeFileSync(path.join(source, 'pet.json'), JSON.stringify({
     id: 'Local Robot',
     displayName: 'Local Robot',
@@ -85,6 +97,63 @@ test('validates and imports a local pet directory', async () => withTempHome((te
   const config = pets.rendererPetConfig(imported);
   assert.equal(config.manifest.id, 'robot-one');
   assert.equal(config.manifest.animations.wave.fallback, 'idle');
+}));
+
+test('accepts custom frame grids that cover the Codex spritesheet', async () => withTempHome((temp) => {
+  const source = path.join(temp, 'wide-frames');
+  fs.mkdirSync(source, { recursive: true });
+  fs.writeFileSync(path.join(source, 'spritesheet.webp'), spritesheetBuffer());
+  fs.writeFileSync(path.join(source, 'pet.json'), JSON.stringify({
+    id: 'wide-frames',
+    displayName: 'Wide Frames',
+    spritesheetPath: 'spritesheet.webp',
+    frame: {
+      width: 384,
+      height: 104,
+      columns: 4,
+      rows: 18,
+    },
+  }));
+
+  const validation = pets.validatePetDirectory(source);
+  assert.equal(validation.valid, true);
+}));
+
+test('rejects pet directories with invalid spritesheet dimensions', async () => withTempHome((temp) => {
+  const source = path.join(temp, 'tiny-pet');
+  fs.mkdirSync(source, { recursive: true });
+  fs.writeFileSync(path.join(source, 'spritesheet.webp'), spritesheetBuffer(1, 1));
+  fs.writeFileSync(path.join(source, 'pet.json'), JSON.stringify({
+    id: 'tiny',
+    displayName: 'Tiny',
+    spritesheetPath: 'spritesheet.webp',
+  }));
+
+  const validation = pets.validatePetDirectory(source);
+  assert.equal(validation.valid, false);
+  assert.match(validation.errors.join('\n'), /1536x1872/);
+}));
+
+test('rejects pet directories with missing animation fallbacks', async () => withTempHome((temp) => {
+  const source = path.join(temp, 'bad-fallback');
+  fs.mkdirSync(source, { recursive: true });
+  fs.writeFileSync(path.join(source, 'spritesheet.webp'), spritesheetBuffer());
+  fs.writeFileSync(path.join(source, 'pet.json'), JSON.stringify({
+    id: 'bad-fallback',
+    displayName: 'Bad Fallback',
+    spritesheetPath: 'spritesheet.webp',
+    animations: {
+      wave: {
+        frames: [24, 25],
+        loop: false,
+        fallback: 'missing',
+      },
+    },
+  }));
+
+  const validation = pets.validatePetDirectory(source);
+  assert.equal(validation.valid, false);
+  assert.match(validation.errors.join('\n'), /fallback missing does not exist/);
 }));
 
 test('rejects pet directories with unsafe spritesheet paths', async () => withTempHome((temp) => {

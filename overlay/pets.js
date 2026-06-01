@@ -2,10 +2,13 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const spritesheet = require('./renderers/spritesheet/adapter');
 
 const BUILTIN_PET_ID = 'uni';
 const DEFAULT_SPRITESHEET = 'spritesheet.webp';
 const MAX_SPRITESHEET_BYTES = 16 * 1024 * 1024;
+const EXPECTED_SPRITESHEET_WIDTH = spritesheet.SHEET_WIDTH;
+const EXPECTED_SPRITESHEET_HEIGHT = spritesheet.SHEET_HEIGHT;
 
 function unipetHome() {
   return process.env.UNIPET_HOME || path.join(os.homedir(), '.unipet');
@@ -88,6 +91,86 @@ function manifestFrame(manifest = {}) {
   };
 }
 
+function imageDimensionsFromBuffer(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 24) return null;
+
+  if (
+    buffer[0] === 0x89 &&
+    buffer.toString('ascii', 1, 4) === 'PNG' &&
+    buffer.toString('ascii', 12, 16) === 'IHDR'
+  ) {
+    return {
+      type: 'png',
+      width: buffer.readUInt32BE(16),
+      height: buffer.readUInt32BE(20),
+    };
+  }
+
+  if (
+    buffer.length >= 30 &&
+    buffer.toString('ascii', 0, 4) === 'RIFF' &&
+    buffer.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    for (let offset = 12; offset + 8 <= buffer.length;) {
+      const chunkType = buffer.toString('ascii', offset, offset + 4);
+      const chunkSize = buffer.readUInt32LE(offset + 4);
+      const dataOffset = offset + 8;
+      if (dataOffset + chunkSize > buffer.length) return null;
+
+      if (chunkType === 'VP8X' && chunkSize >= 10) {
+        return {
+          type: 'webp',
+          width: buffer.readUIntLE(dataOffset + 4, 3) + 1,
+          height: buffer.readUIntLE(dataOffset + 7, 3) + 1,
+        };
+      }
+      if (
+        chunkType === 'VP8 ' &&
+        chunkSize >= 10 &&
+        buffer[dataOffset + 3] === 0x9d &&
+        buffer[dataOffset + 4] === 0x01 &&
+        buffer[dataOffset + 5] === 0x2a
+      ) {
+        return {
+          type: 'webp',
+          width: buffer.readUInt16LE(dataOffset + 6) & 0x3fff,
+          height: buffer.readUInt16LE(dataOffset + 8) & 0x3fff,
+        };
+      }
+      if (chunkType === 'VP8L' && chunkSize >= 5 && buffer[dataOffset] === 0x2f) {
+        const b1 = buffer[dataOffset + 1];
+        const b2 = buffer[dataOffset + 2];
+        const b3 = buffer[dataOffset + 3];
+        const b4 = buffer[dataOffset + 4];
+        return {
+          type: 'webp',
+          width: 1 + b1 + ((b2 & 0x3f) << 8),
+          height: 1 + ((b2 & 0xc0) >> 6) + (b3 << 2) + ((b4 & 0x0f) << 10),
+        };
+      }
+
+      offset = dataOffset + chunkSize + (chunkSize % 2);
+    }
+  }
+
+  return null;
+}
+
+function readImageDimensions(filePath) {
+  return imageDimensionsFromBuffer(fs.readFileSync(filePath));
+}
+
+function validateSpritesheetDimensions(dimensions) {
+  if (!dimensions) {
+    throw new Error('spritesheet dimensions could not be read');
+  }
+  if (dimensions.width !== EXPECTED_SPRITESHEET_WIDTH || dimensions.height !== EXPECTED_SPRITESHEET_HEIGHT) {
+    throw new Error(
+      `spritesheet must be ${EXPECTED_SPRITESHEET_WIDTH}x${EXPECTED_SPRITESHEET_HEIGHT} pixels`,
+    );
+  }
+}
+
 function isInside(parentDir, childPath) {
   const parent = path.resolve(parentDir);
   const child = path.resolve(childPath);
@@ -129,17 +212,17 @@ function validatePetDirectory(dir) {
         if (stat.size <= 0) errors.push('spritesheet is empty');
         if (stat.size > MAX_SPRITESHEET_BYTES) errors.push(`spritesheet is too large: ${stat.size} bytes`);
         if (!['.webp', '.png'].includes(ext)) warnings.push('spritesheet should be a .webp or .png image');
+        try {
+          validateSpritesheetDimensions(readImageDimensions(spritesheetAbs));
+        } catch (error) {
+          errors.push(error.message);
+        }
       }
 
-      const frame = manifestFrame(manifest);
-      const geometry = [
-        ['frame width', frame.width, 192],
-        ['frame height', frame.height, 208],
-        ['frame columns', frame.columns, 8],
-        ['frame rows', frame.rows, 9],
-      ];
-      for (const [label, actual, expected] of geometry) {
-        if (actual !== expected) errors.push(`${label} must be ${expected} for the current spritesheet renderer`);
+      try {
+        spritesheet.normalizeManifest(manifest);
+      } catch (error) {
+        errors.push(error.message);
       }
     }
   }
@@ -246,6 +329,7 @@ function installPetAsset({ id, displayName, description, source, spritesheetBuff
   if (!Buffer.isBuffer(spritesheetBuffer) || spritesheetBuffer.length === 0) {
     throw new Error('spritesheet is empty');
   }
+  validateSpritesheetDimensions(imageDimensionsFromBuffer(spritesheetBuffer));
 
   const root = petsRoot();
   const target = path.join(root, clean);
@@ -256,6 +340,7 @@ function installPetAsset({ id, displayName, description, source, spritesheetBuff
   const originalManifest = sourceManifest && typeof sourceManifest === 'object' && !Array.isArray(sourceManifest)
     ? sourceManifest
     : {};
+  spritesheet.normalizeManifest(originalManifest);
   const frame = manifestFrame(originalManifest);
   const manifest = {
     ...originalManifest,
