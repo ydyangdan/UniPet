@@ -90,3 +90,51 @@ test('keeps Codex-style default animation timing', () => {
     assert.deepEqual(animation.frames.slice(animation.loopStart).map((frame) => frame.spriteIndex), [0, 1, 2, 3, 4, 5]);
   }
 });
+
+test('selects animation frames from elapsed time and loopStart', () => {
+  const animation = {
+    frames: [
+      { spriteIndex: 10, durationMs: 100 },
+      { spriteIndex: 11, durationMs: 200 },
+      { spriteIndex: 12, durationMs: 300 },
+    ],
+    loopStart: 1,
+  };
+
+  assert.deepEqual(
+    pickTick(spritesheet.currentAnimationFrame(animation, 150)),
+    { frameIndex: 1, spriteIndex: 11, delayMs: 150, completed: false },
+  );
+  assert.deepEqual(
+    pickTick(spritesheet.currentAnimationFrame(animation, 650)),
+    { frameIndex: 1, spriteIndex: 11, delayMs: 150, completed: false },
+  );
+});
+
+test('marks non-looping animations complete after their final frame duration', () => {
+  const animation = {
+    frames: [
+      { spriteIndex: 20, durationMs: 100 },
+      { spriteIndex: 21, durationMs: 200 },
+    ],
+    loopStart: null,
+  };
+
+  assert.deepEqual(
+    pickTick(spritesheet.currentAnimationFrame(animation, 250)),
+    { frameIndex: 1, spriteIndex: 21, delayMs: 50, completed: false },
+  );
+  assert.deepEqual(
+    pickTick(spritesheet.currentAnimationFrame(animation, 300)),
+    { frameIndex: 1, spriteIndex: 21, delayMs: null, completed: true },
+  );
+});
+
+function pickTick(tick) {
+  return {
+    frameIndex: tick.frameIndex,
+    spriteIndex: tick.spriteIndex,
+    delayMs: tick.delayMs,
+    completed: tick.completed,
+  };
+}

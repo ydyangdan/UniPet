@@ -237,6 +237,69 @@
     return { spriteIndex, durationMs };
   }
 
+  function animationDurationMs(animation, start = 0, end = undefined) {
+    const frames = animation && Array.isArray(animation.frames) ? animation.frames : [];
+    const from = Math.max(0, Math.min(Number(start) || 0, frames.length));
+    const to = end === undefined
+      ? frames.length
+      : Math.max(from, Math.min(Number(end) || 0, frames.length));
+    return frames
+      .slice(from, to)
+      .reduce((total, frameData) => total + Math.max(1, Number(frameData.durationMs || 0)), 0);
+  }
+
+  function currentAnimationFrame(animation, elapsedMs) {
+    const frames = animation && Array.isArray(animation.frames) ? animation.frames : [];
+    if (frames.length === 0) return null;
+    if (frames.length === 1) {
+      return frameTick(frames[0], 0, null, false);
+    }
+
+    const elapsed = Math.max(0, Number(elapsedMs) || 0);
+    const loopStart = Number.isInteger(animation.loopStart) && animation.loopStart < frames.length
+      ? animation.loopStart
+      : null;
+
+    if (loopStart !== null) {
+      const totalMs = animationDurationMs(animation);
+      const prefixMs = animationDurationMs(animation, 0, loopStart);
+      const loopMs = animationDurationMs(animation, loopStart);
+      const effectiveElapsed = elapsed >= totalMs && loopMs > 0
+        ? prefixMs + ((elapsed - prefixMs) % loopMs)
+        : elapsed;
+      return frameAtElapsed(frames, effectiveElapsed, false);
+    }
+
+    const totalMs = animationDurationMs(animation);
+    if (elapsed >= totalMs) {
+      return frameTick(frames[frames.length - 1], frames.length - 1, null, true);
+    }
+    return frameAtElapsed(frames, elapsed, false);
+  }
+
+  function frameAtElapsed(frames, elapsedMs, completed) {
+    let remaining = Math.max(0, Number(elapsedMs) || 0);
+    for (let index = 0; index < frames.length; index += 1) {
+      const frameData = frames[index];
+      const duration = Math.max(1, Number(frameData.durationMs || 0));
+      if (remaining < duration) {
+        return frameTick(frameData, index, Math.max(1, Math.ceil(duration - remaining)), completed);
+      }
+      remaining -= duration;
+    }
+    return frameTick(frames[frames.length - 1], frames.length - 1, null, true);
+  }
+
+  function frameTick(frameData, frameIndex, delayMs, completed) {
+    return {
+      frameIndex,
+      spriteIndex: frameData.spriteIndex,
+      durationMs: frameData.durationMs,
+      delayMs,
+      completed: Boolean(completed),
+    };
+  }
+
   function canonicalName(name) {
     const value = String(name || 'idle').trim();
     return NAME_ALIASES[value] || value || 'idle';
@@ -301,5 +364,7 @@
     getFrame,
     framePosition,
     canonicalName,
+    animationDurationMs,
+    currentAnimationFrame,
   };
 });

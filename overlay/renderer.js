@@ -18,9 +18,21 @@ const spritesheet = window.UnipetSpritesheetAdapter || {
     }),
     getFrame: (stateName, frame) => ({ spriteIndex: Math.max(0, frame || 0), durationMs: 166 }),
     framePosition: (stateName, frame) => `-${Math.max(0, frame || 0) * 96}px 0`,
+    animationDurationMs: (animation, start = 0, end = undefined) => {
+        const frames = animation && animation.frames || [];
+        return frames
+            .slice(start, end === undefined ? frames.length : end)
+            .reduce((total, frame) => total + Math.max(1, Number(frame.durationMs || 166)), 0);
+    },
+    currentAnimationFrame: (animation, elapsedMs) => {
+        const frames = animation && animation.frames || [];
+        if (!frames.length) return null;
+        const index = Math.floor((Number(elapsedMs) || 0) / 166) % frames.length;
+        return { frameIndex: index, spriteIndex: frames[index].spriteIndex, delayMs: 166, completed: false };
+    },
 };
 const RENDER_SCALE = spritesheet.readRenderScale(new URLSearchParams(window.location.search).get('scale'));
-const DISPLAY_SIZE = spritesheet.displaySize(RENDER_SCALE);
+let displaySize = spritesheet.displaySize(RENDER_SCALE);
 
 // ---- DOM refs ----
 const containerEl = document.getElementById('pet-container');
@@ -49,10 +61,25 @@ const BUBBLE_STATE_MS = {
 
 function configureSpriteSize() {
     const root = document.documentElement;
+    displaySize = spritesheet.displaySize(RENDER_SCALE);
     const bg = spritesheet.backgroundSize(RENDER_SCALE);
-    root.style.setProperty('--pet-width', `${DISPLAY_SIZE.width}px`);
-    root.style.setProperty('--pet-height', `${DISPLAY_SIZE.height}px`);
+    root.style.setProperty('--pet-width', `${displaySize.width}px`);
+    root.style.setProperty('--pet-height', `${displaySize.height}px`);
     spriteEl.style.backgroundSize = `${bg.width}px ${bg.height}px`;
+}
+
+const reduceMotionQuery = typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
+
+function reducedMotionEnabled() {
+    return Boolean(reduceMotionQuery && reduceMotionQuery.matches);
+}
+
+function nowMs() {
+    return typeof performance !== 'undefined' && performance.now
+        ? performance.now()
+        : Date.now();
 }
 
 // ---- Small motion layer: CSS classes, transient effects, idle life ----
@@ -124,7 +151,7 @@ const anim = {
     currentState: null,
     currentBridgeState: 'idle',
     currentFrame: 0,
-    currentFps: null,
+    animationStartedAt: nowMs(),
     frameTimer: null,
     temporaryTimer: null,
     settleTimer: null,
@@ -178,7 +205,6 @@ const anim = {
         const previousBridgeState = this.currentBridgeState;
         const nextBridgeState = intent.state || 'idle';
         const isSettling = previousBridgeState !== 'idle' && nextBridgeState === 'idle';
-        const fps = intent.fps || null;
 
         this.currentBridgeState = nextBridgeState;
         motion.apply(intent);
@@ -187,8 +213,7 @@ const anim = {
         }
 
         // Keep looping animations running while still updating fresh messages.
-        if (this.currentState === normalized && this.animationLoops(cfg)) {
-            if (this.currentFps !== fps) this.startLoop(fps);
+        if (this.currentState === normalized && this.animationLoops(cfg) && !this.currentFrameLimit) {
             if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState, intent.bubbleMs);
             statusEl.textContent = nextBridgeState;
             if (isSettling) this.normalizeIdleAfterSettle();
@@ -198,12 +223,11 @@ const anim = {
         this.stopLoop();
         this.currentState = normalized;
         this.currentFrame = 0;
-        this.renderFrame();
 
         if (this.animationLoops(cfg)) {
-            this.startLoop(fps);
+            this.startLoop();
         } else {
-            this.startOneShot(cfg, intent.fallbackAnimation, fps);
+            this.startOneShot(cfg, intent.fallbackAnimation);
         }
 
         // Show bubble if message provided
@@ -214,6 +238,8 @@ const anim = {
 
     /** Render current frame via CSS background-position. */
     renderFrame() {
+        const tick = this.currentAnimationTick();
+        if (tick) this.currentFrame = tick.frameIndex;
         spriteEl.style.backgroundPosition = spritesheet.framePosition(
             this.currentState,
             this.currentFrame,
@@ -225,70 +251,99 @@ const anim = {
         return Number.isInteger(cfg && cfg.loopStart);
     },
 
-    frameDuration(cfg, frameIndex, fpsOverride) {
-        if (fpsOverride) return Math.max(16, Math.round(1000 / fpsOverride));
-        const frame = spritesheet.getFrame
-            ? spritesheet.getFrame(this.currentState, frameIndex)
-            : ((cfg && cfg.frames || [])[frameIndex]);
-        return Math.max(16, Number(frame && frame.durationMs || 166));
+    currentAnimationTick() {
+        const cfg = this.getConfig(this.currentState);
+        const frames = cfg && cfg.frames || [];
+        if (!frames.length) return null;
+        if (reducedMotionEnabled()) {
+            return {
+                frameIndex: 0,
+                spriteIndex: frames[0].spriteIndex,
+                delayMs: null,
+                completed: false,
+            };
+        }
+
+        const elapsed = Math.max(0, nowMs() - this.animationStartedAt);
+        let activeAnimation = cfg;
+        if (Number.isInteger(this.currentFrameLimit)) {
+            const limit = Math.max(1, Math.min(this.currentFrameLimit, frames.length));
+            const limitDuration = spritesheet.animationDurationMs(cfg, 0, limit);
+            if (elapsed >= limitDuration) {
+                return {
+                    frameIndex: limit - 1,
+                    spriteIndex: frames[limit - 1].spriteIndex,
+                    delayMs: null,
+                    completed: true,
+                    fallback: this.currentFallbackState || cfg.fallback || 'idle',
+                };
+            }
+            activeAnimation = {
+                ...cfg,
+                frames: frames.slice(0, limit),
+                loopStart: null,
+            };
+        }
+
+        const tick = spritesheet.currentAnimationFrame(activeAnimation, elapsed);
+        if (!tick) return null;
+        if (tick.completed) {
+            return {
+                ...tick,
+                fallback: this.currentFallbackState || cfg.fallback || 'idle',
+            };
+        }
+        return tick;
     },
 
     /** Start animation playback, honoring per-frame durations when available. */
-    startLoop(fps) {
-        this.startAnimation(fps);
+    startLoop() {
+        this.startAnimation();
     },
 
-    startAnimation(fps, fallbackState, frameLimit) {
+    startAnimation({ fallbackState = null, frameLimit = null } = {}) {
         this.stopLoop();
-        this.currentFps = fps || null;
         this.currentFallbackState = fallbackState || null;
         this.currentFrameLimit = Number.isInteger(frameLimit) ? frameLimit : null;
+        this.animationStartedAt = nowMs();
+        this.currentFrame = 0;
+        this.renderFrame();
         this.scheduleNextFrame();
     },
 
     scheduleNextFrame() {
-        const cfg = this.getConfig(this.currentState);
-        const duration = this.frameDuration(cfg, this.currentFrame, this.currentFps);
+        if (reducedMotionEnabled()) return;
+        const tick = this.currentAnimationTick();
+        if (!tick) return;
+        if (tick.completed) {
+            this.switchToFallback(tick.fallback);
+            return;
+        }
+        if (!tick.delayMs) return;
         this.frameTimer = setTimeout(() => {
-            const cfg = this.getConfig(this.currentState);
-            const frames = cfg.frames || [];
-            const loopStart = this.animationLoops(cfg) ? cfg.loopStart : null;
-            const limit = this.currentFrameLimit || frames.length;
-            let nextFrame = this.currentFrame + 1;
-
-            if (nextFrame >= limit) {
-                if (this.currentFallbackState) {
-                    this.stopLoop();
-                    this.currentState = this.currentFallbackState;
-                    this.currentFrame = 0;
-                    this.renderFrame();
-                    this.startLoop();
-                    return;
-                }
-                if (loopStart !== null) nextFrame = loopStart;
-            }
-
-            if (nextFrame >= frames.length) {
-                const fallback = cfg.fallback || 'idle';
-                this.stopLoop();
-                this.currentState = fallback;
-                this.currentFrame = 0;
-                this.renderFrame();
-                this.startLoop();
+            const nextTick = this.currentAnimationTick();
+            if (nextTick && nextTick.completed) {
+                this.switchToFallback(nextTick.fallback);
                 return;
             }
-
-            this.currentFrame = nextFrame;
             this.renderFrame();
             this.scheduleNextFrame();
-        }, duration);
+        }, Math.max(16, Math.ceil(tick.delayMs)));
+    },
+
+    switchToFallback(fallbackState) {
+        const fallback = fallbackState || 'idle';
+        if (fallback === this.currentState && !this.currentFrameLimit) return;
+        this.stopLoop();
+        this.currentState = fallback === this.currentState ? 'idle' : fallback;
+        this.startLoop();
     },
 
     /** Play a one-shot animation, then return to a real bridge state. */
-    startOneShot(cfg, fallbackState, fallbackFps) {
+    startOneShot(cfg, fallbackState) {
         const fallback = fallbackState || cfg.fallback || 'idle';
         const totalFrames = cfg.primaryFrameCount || (cfg.frames || []).length;
-        this.startAnimation(fallbackFps, fallback, totalFrames);
+        this.startAnimation({ fallbackState: fallback, frameLimit: totalFrames });
     },
 
     playPreview(stateName) {
@@ -302,7 +357,6 @@ const anim = {
         this.stopLoop();
         this.currentState = normalized;
         this.currentFrame = 0;
-        this.renderFrame();
         this.startOneShot(cfg, returnState);
         statusEl.textContent = normalized;
     },
@@ -317,14 +371,12 @@ const anim = {
         this.stopLoop();
         this.currentState = normalized;
         this.currentFrame = 0;
-        this.renderFrame();
-        this.startLoop(fps || null);
+        this.startLoop();
         this.temporaryTimer = setTimeout(() => {
             if (this.currentBridgeState !== 'idle') return;
             this.stopLoop();
             this.currentState = returnState;
             this.currentFrame = 0;
-            this.renderFrame();
             this.startLoop();
         }, duration || 900);
     },
@@ -340,9 +392,8 @@ const anim = {
             this.stopLoop();
             this.currentState = normalized;
             this.currentFrame = 0;
-            this.renderFrame();
         }
-        if (this.currentFps !== fps) this.startLoop(fps);
+        this.startLoop();
     },
 
     resumeBridgeState() {
@@ -359,10 +410,9 @@ const anim = {
 
     stopLoop() {
         if (this.frameTimer) {
-            clearInterval(this.frameTimer);
+            clearTimeout(this.frameTimer);
             this.frameTimer = null;
         }
-        this.currentFps = null;
         this.currentFallbackState = null;
         this.currentFrameLimit = null;
     },
