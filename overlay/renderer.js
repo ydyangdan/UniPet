@@ -44,7 +44,6 @@ const behavior = window.UnipetBehavior || {
     inferBehavior: (pet) => ({
         state: pet && pet.state || 'idle',
         animation: pet && pet.state || 'idle',
-        fps: 6,
         message: pet && pet.message || '',
         bubbleText: pet && pet.message || '',
     }),
@@ -91,7 +90,6 @@ const motion = {
         setPrefixedClass('state-', intent.state || 'idle');
         setPrefixedClass('emotion-', intent.emotion || 'calm');
         setPrefixedClass('motion-', intent.motion || 'idle');
-        setPrefixedClass('tempo-', intent.tempo || 'normal');
     },
 
     trigger(effectName, duration = 900) {
@@ -123,7 +121,7 @@ const motion = {
             this.trigger(moment.effect, moment.durationMs || 450);
         }
         if (moment.type === 'look-left' || moment.type === 'look-right') {
-            anim.playTemporary(moment.animation || 'running_left', moment.durationMs || 900, moment.fps || 8);
+            anim.playTemporary(moment.animation || 'running_left', moment.durationMs || 900);
         } else if (moment.type === 'hop') {
             anim.playPreview(moment.animation || 'jumping');
         }
@@ -361,7 +359,7 @@ const anim = {
         statusEl.textContent = normalized;
     },
 
-    playTemporary(stateName, duration, fps) {
+    playTemporary(stateName, duration) {
         const returnState = this.currentState || 'idle';
         const normalized = stateName || 'idle';
         const cfg = this.getConfig(normalized);
@@ -384,7 +382,6 @@ const anim = {
     playDrag(direction) {
         const normalized = direction === 'left' ? 'running_left' : 'running_right';
         const cfg = this.getConfig(normalized);
-        const fps = null;
 
         clearTimeout(this.temporaryTimer);
         setPrefixedClass('direction-', direction === 'left' ? 'left' : 'right');

@@ -30,25 +30,25 @@
   };
 
   const STATE_INTENTS = {
-    idle: { animation: 'idle', fps: 0.6, emotion: 'calm', motion: 'idle', tempo: 'quiet' },
-    running: { animation: 'running', fps: 5, emotion: 'focused', motion: 'work', tempo: 'normal' },
-    waiting: { animation: 'waiting', fps: 2.6, emotion: 'curious', motion: 'wait', tempo: 'slow' },
-    failed: { animation: 'failed', fps: 3.2, emotion: 'frustrated', effect: 'shake', motion: 'alert', tempo: 'fast' },
-    review: { animation: 'review', fps: 2.8, emotion: 'happy', effect: 'bounce', motion: 'idle', tempo: 'slow' },
+    idle: { animation: 'idle', emotion: 'calm', motion: 'idle' },
+    running: { animation: 'running', emotion: 'focused', motion: 'work' },
+    waiting: { animation: 'waiting', emotion: 'curious', motion: 'wait' },
+    failed: { animation: 'failed', emotion: 'frustrated', effect: 'shake', motion: 'alert' },
+    review: { animation: 'review', emotion: 'happy', effect: 'bounce', motion: 'idle' },
   };
 
   const KIND_INTENTS = {
-    failure: { animation: 'failed', fps: 3.6, emotion: 'frustrated', effect: 'shake', motion: 'alert', tempo: 'fast' },
-    success: { animation: 'review', fps: 3.2, emotion: 'happy', effect: 'bounce', motion: 'idle', tempo: 'slow' },
-    permission: { animation: 'waiting', fps: 2.4, emotion: 'curious', motion: 'wait', tempo: 'slow' },
-    delegate: { animation: 'jumping', fps: 5, emotion: 'excited', effect: 'bounce', motion: 'work', tempo: 'fast' },
-    test: { animation: 'running', fps: 5.4, emotion: 'focused', motion: 'work', tempo: 'fast' },
-    build: { animation: 'running_right', fps: 5, emotion: 'focused', motion: 'work', tempo: 'normal' },
-    network: { animation: 'waving', fps: 4.2, emotion: 'focused', motion: 'scan', tempo: 'normal' },
-    write: { animation: 'running_right', fps: 4.8, emotion: 'focused', motion: 'work', tempo: 'normal' },
-    read: { animation: 'running_left', fps: 4.2, emotion: 'focused', motion: 'scan', tempo: 'normal' },
-    shell: { animation: 'running', fps: 5, emotion: 'focused', motion: 'work', tempo: 'normal' },
-    thinking: { animation: 'running', fps: 2.2, emotion: 'focused', motion: 'think', tempo: 'slow' },
+    failure: { animation: 'failed', emotion: 'frustrated', effect: 'shake', motion: 'alert' },
+    success: { animation: 'review', emotion: 'happy', effect: 'bounce', motion: 'idle' },
+    permission: { animation: 'waiting', emotion: 'curious', motion: 'wait' },
+    delegate: { animation: 'jumping', emotion: 'excited', effect: 'bounce', motion: 'work' },
+    test: { animation: 'running', emotion: 'focused', motion: 'work' },
+    build: { animation: 'running_right', emotion: 'focused', motion: 'work' },
+    network: { animation: 'waving', emotion: 'focused', motion: 'scan' },
+    write: { animation: 'running_right', emotion: 'focused', motion: 'work' },
+    read: { animation: 'running_left', emotion: 'focused', motion: 'scan' },
+    shell: { animation: 'running', emotion: 'focused', motion: 'work' },
+    thinking: { animation: 'running', emotion: 'focused', motion: 'think' },
   };
 
   function clamp(value, min, max) {
@@ -93,7 +93,6 @@
       attention: life.attention,
       fallbackAnimation: fallbackAnimationFor(signal.state),
       bubbleMs: bubblePolicy.durationFor(signal),
-      tempo: kindIntent.tempo || stateIntent.tempo || 'normal',
       life,
     };
 
@@ -104,9 +103,9 @@
     const roll = random();
     if (roll < 0.62) return { type: 'none', durationMs: 0 };
     if (roll < 0.78) return { type: 'blink', effect: 'blink', durationMs: 420 };
-    if (roll < 0.88) return { type: 'look-left', animation: 'running_left', fps: 3.6, durationMs: 1300 };
-    if (roll < 0.94) return { type: 'look-right', animation: 'running_right', fps: 3.6, durationMs: 1300 };
-    if (roll < 0.985) return { type: 'hop', animation: 'jumping', effect: 'bounce', fps: 4.8, durationMs: 1100 };
+    if (roll < 0.88) return { type: 'look-left', animation: 'running_left', durationMs: 1300 };
+    if (roll < 0.94) return { type: 'look-right', animation: 'running_right', durationMs: 1300 };
+    if (roll < 0.985) return { type: 'hop', animation: 'jumping', effect: 'bounce', durationMs: 1100 };
     return { type: 'sleepy', effect: 'sleepy', durationMs: 1800 };
   }
 

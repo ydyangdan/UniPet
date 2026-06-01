@@ -16,11 +16,11 @@ test('infers read and write behaviors from messages', () => {
 test('infers shell, thinking, success, and failure behavior', () => {
   assert.deepEqual(
     pick(inferBehavior({ state: 'running', message: 'exec_shell npm test' })),
-    { animation: 'running', fps: 5.4, emotion: 'focused', rule: 'test' },
+    { animation: 'running', emotion: 'focused', rule: 'test' },
   );
   assert.deepEqual(
     pick(inferBehavior({ state: 'running', message: 'thinking through plan' })),
-    { animation: 'running', fps: 2.2, emotion: 'focused', rule: 'thinking' },
+    { animation: 'running', emotion: 'focused', rule: 'thinking' },
   );
   assert.equal(inferBehavior({ state: 'review', message: 'all tests pass' }).emotion, 'happy');
   assert.equal(inferBehavior({ state: 'failed', message: 'tool failed with timeout' }).effect, 'shake');
@@ -62,7 +62,6 @@ test('plans quiet idle moments most of the time', () => {
 function pick(intent) {
   return {
     animation: intent.animation,
-    fps: intent.fps,
     emotion: intent.emotion,
     rule: intent.rule,
   };
