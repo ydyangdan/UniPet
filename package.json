@@ -41,7 +41,8 @@
     "check": "npm --prefix overlay run check && node scripts/run-tests.js connectors/openclaw/plugin/tests connectors/deepseek-tui/tests connectors/codex/tests connectors/claude-code/tests",
     "test": "npm run check",
     "pack:dry": "npm pack --dry-run",
-    "smoke:install": "node scripts/smoke-install.js"
+    "smoke:install": "node scripts/smoke-install.js",
+    "smoke:overlay": "node scripts/smoke-overlay.js"
   },
   "files": [
     "README.md",

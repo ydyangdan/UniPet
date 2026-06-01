@@ -210,11 +210,14 @@ UniPet 可以在 Windows、macOS、Linux、Unix 或 WSL 上运行。Agent 连接
 npm install
 npm run check
 npm run smoke:install
+npm run smoke:overlay
 npm start
 ```
 
 `npm run check` 会运行 overlay 测试，以及 OpenClaw、DeepSeek-TUI、Codex、
 Claude Code 的连接器测试。
+`npm run smoke:overlay` 会用临时本地配置启动 overlay，发送核心状态，
+检查 bridge view，然后停止运行时。
 
 常用项目文档：
 

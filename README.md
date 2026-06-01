@@ -213,11 +213,14 @@ optional; connect only the agents you actually use.
 npm install
 npm run check
 npm run smoke:install
+npm run smoke:overlay
 npm start
 ```
 
 `npm run check` runs the overlay tests and connector tests for OpenClaw,
 DeepSeek-TUI, Codex, and Claude Code.
+`npm run smoke:overlay` starts a temporary local overlay, sends each core state,
+checks the bridge view, and then stops the runtime.
 
 Useful project files:
 

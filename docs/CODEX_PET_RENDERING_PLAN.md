@@ -123,7 +123,10 @@ Add a small smoke path that can be run before release:
 - Verify the active pet config loads.
 - Add screenshot automation only if it stays reliable on Windows.
 
-Manual smoke remains acceptable until screenshot automation is stable.
+`npm run smoke:overlay` now covers the local runtime, bridge view, state events,
+and current pet config. Manual visual inspection is still useful for checking
+transparent window placement, drag feel, and bubble overlap until screenshot
+automation is reliable on Windows.
 
 ## Commit Strategy
 
@@ -142,6 +145,7 @@ only at the end of the batch:
 npm test
 npm run pack:dry
 npm run smoke:install
+npm run smoke:overlay
 ```
 
 Again, do not bump or publish `0.1.5` until explicitly requested.
