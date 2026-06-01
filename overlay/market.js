@@ -16,6 +16,13 @@ function absoluteMarketUrl(value) {
   return new URL(raw, MARKET_WEB_URL).href;
 }
 
+function absoluteAssetUrl(value, baseUrl = '') {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('/api/')) return apiPath(raw);
+  return new URL(raw, baseUrl || MARKET_WEB_URL).href;
+}
+
 function apiPath(route) {
   return `${MARKET_API_BASE.replace(/\/+$/, '')}/${String(route || '').replace(/^\/+/, '')}`;
 }
@@ -69,6 +76,7 @@ function petIdFromPath(value) {
 function normalizeMarketPet(payload) {
   const pet = payload && payload.pet && typeof payload.pet === 'object' ? payload.pet : payload;
   const id = String(pet && pet.id || '').trim();
+  const spritesheetUrl = absoluteMarketUrl(String(pet && pet.spritesheetUrl || ''));
   return {
     id,
     displayName: String(pet && (pet.displayName || pet.name) || id),
@@ -77,9 +85,62 @@ function normalizeMarketPet(payload) {
     tags: Array.isArray(pet && pet.tags) ? pet.tags.map((tag) => String(tag)) : [],
     likeCount: Number(pet && pet.likeCount || 0),
     viewCount: Number(pet && pet.viewCount || 0),
-    spritesheetUrl: absoluteMarketUrl(String(pet && pet.spritesheetUrl || '')),
+    spritesheetUrl,
+    manifest: marketManifestFromPayload(pet),
+    manifestFallback: marketManifestFallback(pet),
+    manifestUrl: marketManifestUrl(pet, spritesheetUrl),
     downloadUrl: absoluteMarketUrl(String(pet && pet.downloadUrl || '')),
   };
+}
+
+function isPlainObject(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function marketManifestFromPayload(pet) {
+  if (!isPlainObject(pet)) return null;
+  for (const key of ['manifest', 'petJson', 'pet_json', 'config']) {
+    if (isPlainObject(pet[key])) return pet[key];
+  }
+  return null;
+}
+
+function marketManifestFallback(pet) {
+  if (!isPlainObject(pet)) return null;
+  const manifest = {};
+  for (const key of [
+    'id',
+    'displayName',
+    'name',
+    'description',
+    'kind',
+    'spritesheetPath',
+    'frame',
+    'frameWidth',
+    'frameHeight',
+    'columns',
+    'rows',
+    'animations',
+  ]) {
+    if (pet[key] !== undefined) manifest[key] = pet[key];
+  }
+  return Object.keys(manifest).length ? manifest : null;
+}
+
+function marketManifestUrl(pet, spritesheetUrl) {
+  if (!isPlainObject(pet)) return manifestUrlFromSpritesheet(spritesheetUrl);
+  const explicit = pet.manifestUrl || pet.petJsonUrl || pet.pet_json_url || pet.petJsonPath || pet.manifestPath;
+  if (explicit) return absoluteAssetUrl(explicit, spritesheetUrl);
+  return manifestUrlFromSpritesheet(spritesheetUrl);
+}
+
+function manifestUrlFromSpritesheet(spritesheetUrl) {
+  if (!spritesheetUrl) return '';
+  try {
+    return new URL('pet.json', spritesheetUrl).href;
+  } catch (_) {
+    return '';
+  }
 }
 
 function requestBuffer(url, { maxBytes = MAX_DOWNLOAD_BYTES, redirects = 3 } = {}) {
@@ -137,6 +198,21 @@ async function requestJson(url) {
   return JSON.parse(body.toString('utf8'));
 }
 
+async function requestJsonOptional(url) {
+  if (!url) return null;
+  try {
+    const payload = await requestJson(url);
+    return isPlainObject(payload) ? payload : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function resolveMarketManifest(pet) {
+  if (isPlainObject(pet && pet.manifest)) return pet.manifest;
+  return await requestJsonOptional(pet && pet.manifestUrl) || pet && pet.manifestFallback || null;
+}
+
 async function listMarketPets({ query = '', page = 1, limit = 12, sort = 'new', content = 'safe' } = {}) {
   const safeSort = ['new', 'popular', 'views'].includes(sort) ? sort : 'new';
   const safeLimit = Math.max(1, Math.min(Number.parseInt(limit, 10) || 12, 50));
@@ -173,17 +249,20 @@ async function installMarketPet(identifier, { localId = '' } = {}) {
   if (!pet.spritesheetUrl) throw new Error(`Market pet has no spritesheet: ${pet.id}`);
   const targetId = cleanPetId(localId || pet.id);
   const spritesheet = await requestBuffer(pet.spritesheetUrl);
+  const manifest = await resolveMarketManifest(pet);
   const installed = installPetAsset({
     id: targetId,
     displayName: pet.displayName,
     description: pet.description,
     source: 'codex-pet-share',
     spritesheetBuffer: spritesheet,
+    manifest,
     sourceMeta: {
       source: MARKET_WEB_URL,
       apiBase: MARKET_API_BASE,
       installedFrom: identifier,
       pet,
+      manifest,
     },
   });
   return { pet, installed };

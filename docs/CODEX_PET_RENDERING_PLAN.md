@@ -56,8 +56,9 @@ implementation:
   rejects spritesheets that do not cover the Codex-compatible sheet.
 - Done: `npm run smoke:overlay` starts a temporary local runtime and verifies
   state events plus current pet config.
-- Remaining: market install is still metadata/spritesheet-first and does not
-  preserve a full remote manifest unless one is already provided by the caller.
+- Done: market install now preserves an embedded remote manifest, attempts the
+  adjacent `pet.json` beside a market spritesheet, and falls back to metadata
+  when no manifest is available.
 - Remaining: the renderer still combines animation playback, life intent,
   bubbles, drag behavior, idle moments, and visual effects in one large file.
   Further splitting should be done only when it clearly reduces complexity.
