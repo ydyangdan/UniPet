@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.5 - 2026-06-02
+
+- Aligned the spritesheet renderer with Codex-style pet manifests, including
+  manifest frame durations, loop starts, and safer fallback animation behavior.
+- Added a lightweight hover/click status card that shows the active Agent
+  source, display status, task summary, and elapsed time without inventing
+  unavailable CPU, memory, or progress data.
+- Improved companion status expression with grounded short bubble copy for
+  running, thinking, waiting, confirmation, completion, and problem states.
+- Preserved embedded Codex Pet Share manifests during pet installs and added
+  stronger validation for custom pet assets.
+- Refined the demo GIF and docs around the Agent state visualization experience.
+- Added overlay smoke coverage to verify the local bridge and core state flow.
+
 ## 0.1.4 - 2026-05-31
 
 - Added GitHub Actions CI across Windows, macOS, and Linux.
