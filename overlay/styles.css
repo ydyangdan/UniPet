@@ -217,43 +217,61 @@ body:active {
 
 #pet-status-card {
     position: absolute;
-    top: -56px;
+    top: calc(100% + 8px);
     left: 50%;
     z-index: 4;
-    width: 220px;
-    padding: 9px 10px 10px;
+    width: 168px;
+    max-width: 168px;
+    padding: 8px 9px 9px;
     transform: translateX(-50%) translateY(0);
-    border: 1px solid rgba(149, 218, 255, 0.2);
+    border: 1px solid rgba(157, 211, 255, 0.16);
     border-radius: 8px;
-    background: rgba(8, 13, 22, 0.9);
+    background: rgba(9, 13, 20, 0.82);
     box-shadow:
-        0 16px 32px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        0 10px 24px rgba(0, 0, 0, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.055);
     color: rgba(238, 244, 255, 0.94);
     font-family: "Segoe UI", sans-serif;
     font-size: 11px;
-    line-height: 1.35;
+    line-height: 1.32;
     overflow: hidden;
     pointer-events: none;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
     transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
 #pet-status-card.hidden {
     opacity: 0;
-    transform: translateX(-50%) translateY(4px);
+    transform: translateX(-50%) translateY(-4px);
 }
 
 .status-card-header {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    min-width: 0;
+}
+
+.status-card-title {
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 6px;
+    min-width: 0;
+    color: rgba(244, 248, 255, 0.96);
     font-size: 12px;
     font-weight: 600;
 }
 
+#status-card-state {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 #status-card-dot {
+    flex: 0 0 auto;
     width: 7px;
     height: 7px;
     border-radius: 999px;
@@ -261,12 +279,29 @@ body:active {
     box-shadow: 0 0 12px rgba(110, 231, 183, 0.85);
 }
 
+#status-card-source {
+    flex: 0 1 auto;
+    max-width: 72px;
+    padding: 1px 5px 2px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.055);
+    color: rgba(205, 216, 235, 0.72);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#status-card-source:empty {
+    display: none;
+}
+
 .status-card-row {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    min-height: 17px;
-    padding-top: 3px;
+    gap: 7px;
+    min-height: 16px;
+    padding-top: 2px;
 }
 
 .status-card-row[hidden] {
@@ -274,8 +309,8 @@ body:active {
 }
 
 .status-card-label {
-    flex: 0 0 48px;
-    color: rgba(190, 203, 224, 0.7);
+    flex: 0 0 44px;
+    color: rgba(190, 203, 224, 0.62);
 }
 
 .status-card-value {
@@ -288,7 +323,7 @@ body:active {
 }
 
 #pet-status-card.status-running {
-    border-color: rgba(82, 230, 154, 0.26);
+    border-color: rgba(82, 230, 154, 0.22);
 }
 
 #pet-status-card.status-running #status-card-dot,
@@ -313,7 +348,7 @@ body:active {
 }
 
 #pet-status-card.status-problem {
-    border-color: rgba(255, 116, 116, 0.3);
+    border-color: rgba(255, 116, 116, 0.26);
 }
 
 #pet-status-card.status-problem #status-card-dot {

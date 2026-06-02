@@ -19,6 +19,8 @@ test('uses poster-style short status copy', () => {
   assert.equal(bubble.bubbleTextFor({ state: 'running', kind: 'running' }), '专注工作中，别打扰我哦~');
   assert.equal(bubble.bubbleTextFor({ state: 'running', kind: 'thinking' }), '我在想想怎么做更好...');
   assert.equal(bubble.bubbleTextFor({ state: 'failed', kind: 'failure' }), '好像遇到一些问题了...');
+  assert.equal(bubble.bubbleTextFor({ state: 'running', kind: 'read' }), '我在翻翻项目文件。');
+  assert.equal(bubble.bubbleTextFor({ state: 'running', kind: 'write' }), '正在改文件啦。');
 });
 
 test('derives display status without changing protocol states', () => {

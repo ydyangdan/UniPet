@@ -42,12 +42,9 @@ const bubbleTextEl = document.getElementById('bubble-text');
 const statusEl = document.getElementById('pet-status');
 const statusCardEl = document.getElementById('pet-status-card');
 const statusCardStateEl = document.getElementById('status-card-state');
-const statusCardSourceRowEl = document.getElementById('status-card-source-row');
 const statusCardSourceEl = document.getElementById('status-card-source');
 const statusCardTaskRowEl = document.getElementById('status-card-task-row');
 const statusCardTaskEl = document.getElementById('status-card-task');
-const statusCardEventRowEl = document.getElementById('status-card-event-row');
-const statusCardEventEl = document.getElementById('status-card-event');
 const statusCardDurationRowEl = document.getElementById('status-card-duration-row');
 const statusCardDurationEl = document.getElementById('status-card-duration');
 const behavior = window.UnipetBehavior || {
@@ -439,6 +436,7 @@ const anim = {
 
     /** Show a speech bubble for a few seconds. */
     showBubble(text, stateName, requestedMs) {
+        if (statusCardEl && !statusCardEl.classList.contains('hidden')) return;
         const displayText = behavior.clipBubbleText(text);
         if (!displayText) return;
         const duration = normalizeBubbleMs(requestedMs, stateName);
@@ -531,14 +529,12 @@ const statusCard = {
         const displayStatus = intent.displayStatus || (intent.state === 'failed' ? 'problem' : intent.state) || 'waiting';
         const displayLabel = intent.displayLabel || labelForDisplayStatus(displayStatus);
         const task = taskSummary(pet, intent);
-        const event = recentEvent(intent, displayLabel);
         const duration = formatDuration(pet && pet.updatedAt);
 
         setStatusCardTone(displayStatus);
         statusCardStateEl.textContent = displayLabel;
-        setCardRow(statusCardSourceRowEl, statusCardSourceEl, pet && pet.source);
+        statusCardSourceEl.textContent = pet && pet.source ? String(pet.source) : '';
         setCardRow(statusCardTaskRowEl, statusCardTaskEl, task);
-        setCardRow(statusCardEventRowEl, statusCardEventEl, event);
         setCardRow(statusCardDurationRowEl, statusCardDurationEl, duration);
     },
 };
@@ -564,12 +560,6 @@ function taskSummary(pet, intent) {
     const stateText = String(pet.state || '').trim();
     if (!summary || summary === stateText) return '';
     return summary;
-}
-
-function recentEvent(intent, displayLabel) {
-    const event = String(intent.displayEvent || '').trim();
-    if (!event || event === displayLabel) return '';
-    return event;
 }
 
 function formatDuration(updatedAt) {
