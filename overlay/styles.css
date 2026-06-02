@@ -215,6 +215,112 @@ body:active {
     font-size: 9px;
 }
 
+#pet-status-card {
+    position: absolute;
+    top: -56px;
+    left: 50%;
+    z-index: 4;
+    width: 220px;
+    padding: 9px 10px 10px;
+    transform: translateX(-50%) translateY(0);
+    border: 1px solid rgba(149, 218, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(8, 13, 22, 0.9);
+    box-shadow:
+        0 16px 32px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    color: rgba(238, 244, 255, 0.94);
+    font-family: "Segoe UI", sans-serif;
+    font-size: 11px;
+    line-height: 1.35;
+    overflow: hidden;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+#pet-status-card.hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+}
+
+.status-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#status-card-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #6ee7b7;
+    box-shadow: 0 0 12px rgba(110, 231, 183, 0.85);
+}
+
+.status-card-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 17px;
+    padding-top: 3px;
+}
+
+.status-card-row[hidden] {
+    display: none;
+}
+
+.status-card-label {
+    flex: 0 0 48px;
+    color: rgba(190, 203, 224, 0.7);
+}
+
+.status-card-value {
+    flex: 1;
+    min-width: 0;
+    color: rgba(238, 244, 255, 0.92);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#pet-status-card.status-running {
+    border-color: rgba(82, 230, 154, 0.26);
+}
+
+#pet-status-card.status-running #status-card-dot,
+#pet-status-card.status-done #status-card-dot {
+    background: #6ee7b7;
+    box-shadow: 0 0 12px rgba(110, 231, 183, 0.9);
+}
+
+#pet-status-card.status-thinking #status-card-dot {
+    background: #f8d66d;
+    box-shadow: 0 0 12px rgba(248, 214, 109, 0.9);
+}
+
+#pet-status-card.status-waiting #status-card-dot {
+    background: #93c5fd;
+    box-shadow: 0 0 12px rgba(147, 197, 253, 0.78);
+}
+
+#pet-status-card.status-confirm #status-card-dot {
+    background: #a7b9ff;
+    box-shadow: 0 0 12px rgba(167, 185, 255, 0.86);
+}
+
+#pet-status-card.status-problem {
+    border-color: rgba(255, 116, 116, 0.3);
+}
+
+#pet-status-card.status-problem #status-card-dot {
+    background: #ff7474;
+    box-shadow: 0 0 12px rgba(255, 116, 116, 0.9);
+}
+
 @keyframes pet-breathe {
     0%, 100% { transform: translateY(0) scale(1); }
     50% { transform: translateY(-1px) scale(1.015, 0.995); }

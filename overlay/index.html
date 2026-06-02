@@ -11,6 +11,28 @@
   <div id="pet-bubble" class="hidden">
     <span id="bubble-text"></span>
   </div>
+  <div id="pet-status-card" class="hidden status-waiting" aria-hidden="true">
+    <div class="status-card-header">
+      <span id="status-card-dot"></span>
+      <span id="status-card-state">等待中</span>
+    </div>
+    <div class="status-card-row" id="status-card-source-row">
+      <span class="status-card-label">Agent</span>
+      <span class="status-card-value" id="status-card-source"></span>
+    </div>
+    <div class="status-card-row" id="status-card-task-row">
+      <span class="status-card-label">当前任务</span>
+      <span class="status-card-value" id="status-card-task"></span>
+    </div>
+    <div class="status-card-row" id="status-card-event-row">
+      <span class="status-card-label">最近事件</span>
+      <span class="status-card-value" id="status-card-event"></span>
+    </div>
+    <div class="status-card-row" id="status-card-duration-row">
+      <span class="status-card-label">持续时间</span>
+      <span class="status-card-value" id="status-card-duration"></span>
+    </div>
+  </div>
 </div>
 <div id="pet-status">starting...</div>
 <script src="life/bubble.js"></script>

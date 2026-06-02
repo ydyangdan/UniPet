@@ -40,14 +40,28 @@ const spriteEl = document.getElementById('pet-sprite');
 const bubbleEl = document.getElementById('pet-bubble');
 const bubbleTextEl = document.getElementById('bubble-text');
 const statusEl = document.getElementById('pet-status');
+const statusCardEl = document.getElementById('pet-status-card');
+const statusCardStateEl = document.getElementById('status-card-state');
+const statusCardSourceRowEl = document.getElementById('status-card-source-row');
+const statusCardSourceEl = document.getElementById('status-card-source');
+const statusCardTaskRowEl = document.getElementById('status-card-task-row');
+const statusCardTaskEl = document.getElementById('status-card-task');
+const statusCardEventRowEl = document.getElementById('status-card-event-row');
+const statusCardEventEl = document.getElementById('status-card-event');
+const statusCardDurationRowEl = document.getElementById('status-card-duration-row');
+const statusCardDurationEl = document.getElementById('status-card-duration');
 const behavior = window.UnipetBehavior || {
     inferBehavior: (pet) => ({
         state: pet && pet.state || 'idle',
         animation: pet && pet.state || 'idle',
         message: pet && pet.message || '',
         bubbleText: pet && pet.message || '',
+        displayStatus: pet && pet.state || 'waiting',
+        displayLabel: pet && pet.state || 'waiting',
+        displayTone: pet && pet.state || 'waiting',
     }),
     clipBubbleText: (text) => String(text || '').slice(0, 20),
+    safeSummary: (text) => String(text || '').slice(0, 44),
 };
 const BUBBLE_MIN_VISIBLE_MS = 3200;
 const BUBBLE_STATE_MS = {
@@ -88,6 +102,7 @@ const motion = {
 
     apply(intent) {
         setPrefixedClass('state-', intent.state || 'idle');
+        setPrefixedClass('display-', intent.displayStatus || intent.state || 'waiting');
         setPrefixedClass('emotion-', intent.emotion || 'calm');
         setPrefixedClass('motion-', intent.motion || 'idle');
     },
@@ -160,6 +175,8 @@ const anim = {
     lastBubbleText: '',
     lastBubbleAt: 0,
     currentBridgeMessage: '',
+    activePet: null,
+    currentIntent: null,
 
     /** Load a spritesheet (change pet skin). */
     loadSpritesheet(url) {
@@ -190,14 +207,18 @@ const anim = {
     },
 
     /** Transition from a bridge state/message into a local behavior intent. */
-    transition(stateName, message) {
+    transition(stateName, message, petSnapshot) {
         this.currentBridgeMessage = message || '';
+        if (arguments.length >= 3) {
+            this.activePet = petSnapshot ? { ...petSnapshot } : null;
+        }
         const intent = behavior.inferBehavior({ state: stateName, message }, this.lifeState);
         if (intent.life) this.lifeState = intent.life;
         this.transitionIntent(intent);
     },
 
     transitionIntent(intent) {
+        this.currentIntent = intent;
         const normalized = intent.animation || intent.state || 'idle';
         const cfg = this.getConfig(normalized);
         const previousBridgeState = this.currentBridgeState;
@@ -213,7 +234,8 @@ const anim = {
         // Keep looping animations running while still updating fresh messages.
         if (this.currentState === normalized && this.animationLoops(cfg) && !this.currentFrameLimit) {
             if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState, intent.bubbleMs);
-            statusEl.textContent = nextBridgeState;
+            statusEl.textContent = intent.displayLabel || nextBridgeState;
+            statusCard.render();
             if (isSettling) this.normalizeIdleAfterSettle();
             return;
         }
@@ -230,7 +252,8 @@ const anim = {
 
         // Show bubble if message provided
         if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState, intent.bubbleMs);
-        statusEl.textContent = nextBridgeState;
+        statusEl.textContent = intent.displayLabel || nextBridgeState;
+        statusCard.render();
         if (isSettling) this.normalizeIdleAfterSettle();
     },
 
@@ -445,6 +468,134 @@ function normalizeBubbleMs(requestedMs, stateName) {
     return Math.max(BUBBLE_MIN_VISIBLE_MS, Math.min(value, 15000));
 }
 
+const statusCard = {
+    hideTimer: null,
+    tickTimer: null,
+    pinned: false,
+
+    show({ pinned = false } = {}) {
+        if (!statusCardEl) return;
+        clearTimeout(this.hideTimer);
+        if (pinned) this.pinned = true;
+        this.render();
+        bubbleEl.classList.add('hidden');
+        statusCardEl.classList.remove('hidden');
+        statusCardEl.setAttribute('aria-hidden', 'false');
+        this.startTicking();
+        if (pinned) {
+            this.hideTimer = setTimeout(() => this.hide({ force: true }), 6500);
+        }
+    },
+
+    scheduleHide(delay = 500) {
+        if (this.pinned || !statusCardEl) return;
+        clearTimeout(this.hideTimer);
+        this.hideTimer = setTimeout(() => this.hide(), delay);
+    },
+
+    hide({ force = false } = {}) {
+        if (!force && this.pinned) return;
+        clearTimeout(this.hideTimer);
+        this.pinned = false;
+        if (statusCardEl) {
+            statusCardEl.classList.add('hidden');
+            statusCardEl.setAttribute('aria-hidden', 'true');
+        }
+        this.stopTicking();
+    },
+
+    togglePinned() {
+        if (!statusCardEl) return;
+        if (!statusCardEl.classList.contains('hidden') && this.pinned) {
+            this.hide({ force: true });
+            return;
+        }
+        this.show({ pinned: true });
+    },
+
+    startTicking() {
+        if (this.tickTimer) return;
+        this.tickTimer = setInterval(() => this.render(), 1000);
+    },
+
+    stopTicking() {
+        if (!this.tickTimer) return;
+        clearInterval(this.tickTimer);
+        this.tickTimer = null;
+    },
+
+    render() {
+        if (!statusCardEl) return;
+        const intent = anim.currentIntent || {};
+        const pet = anim.activePet || null;
+        const displayStatus = intent.displayStatus || (intent.state === 'failed' ? 'problem' : intent.state) || 'waiting';
+        const displayLabel = intent.displayLabel || labelForDisplayStatus(displayStatus);
+        const task = taskSummary(pet, intent);
+        const event = recentEvent(intent, displayLabel);
+        const duration = formatDuration(pet && pet.updatedAt);
+
+        setStatusCardTone(displayStatus);
+        statusCardStateEl.textContent = displayLabel;
+        setCardRow(statusCardSourceRowEl, statusCardSourceEl, pet && pet.source);
+        setCardRow(statusCardTaskRowEl, statusCardTaskEl, task);
+        setCardRow(statusCardEventRowEl, statusCardEventEl, event);
+        setCardRow(statusCardDurationRowEl, statusCardDurationEl, duration);
+    },
+};
+
+function setStatusCardTone(displayStatus) {
+    const tone = displayStatus || 'waiting';
+    for (const name of Array.from(statusCardEl.classList)) {
+        if (name.startsWith('status-')) statusCardEl.classList.remove(name);
+    }
+    statusCardEl.classList.add(`status-${tone}`);
+}
+
+function setCardRow(rowEl, valueEl, value) {
+    if (!rowEl || !valueEl) return;
+    const text = String(value || '').trim();
+    rowEl.hidden = !text;
+    valueEl.textContent = text;
+}
+
+function taskSummary(pet, intent) {
+    if (!pet) return '';
+    const summary = intent.messageSummary || behavior.safeSummary(pet.message);
+    const stateText = String(pet.state || '').trim();
+    if (!summary || summary === stateText) return '';
+    return summary;
+}
+
+function recentEvent(intent, displayLabel) {
+    const event = String(intent.displayEvent || '').trim();
+    if (!event || event === displayLabel) return '';
+    return event;
+}
+
+function formatDuration(updatedAt) {
+    const value = Number(updatedAt);
+    if (!Number.isFinite(value) || value <= 0) return '';
+    const seconds = Math.max(0, Math.floor(Date.now() / 1000 - value));
+    if (seconds < 5) return '刚刚';
+    if (seconds < 60) return `${seconds}秒`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}分`;
+    const hours = Math.floor(minutes / 60);
+    const restMinutes = minutes % 60;
+    return restMinutes ? `${hours}小时${restMinutes}分` : `${hours}小时`;
+}
+
+function labelForDisplayStatus(displayStatus) {
+    return {
+        running: '运行中',
+        thinking: '思考中',
+        waiting: '等待中',
+        confirm: '需要确认',
+        done: '完成',
+        problem: '遇到问题',
+    }[displayStatus] || '等待中';
+}
+
 // ---- Initialise ----
 function init() {
     configureSpriteSize();
@@ -455,9 +606,9 @@ function init() {
             if (event.currentPet) anim.applyPetConfig(event.currentPet);
             const pet = event.activePet || (event.pets || [])[0];
             if (pet) {
-                anim.transition(pet.state, pet.message);
+                anim.transition(pet.state, pet.message, pet);
             } else {
-                anim.transition('idle');
+                anim.transition('idle', '', null);
             }
         });
 
@@ -473,17 +624,22 @@ function init() {
     }
 
     // Initial render
-    anim.transition('idle', 'UniPet ready');
+    anim.transition('idle', 'UniPet ready', null);
     motion.scheduleIdle();
 
     // Pointer interactions are temporary animations; bridge state remains authoritative.
     spriteEl.addEventListener('click', () => {
         anim.playPreview('jumping');
+        statusCard.togglePinned();
     });
-    spriteEl.addEventListener('mouseenter', () => {
+    containerEl.addEventListener('mouseenter', () => {
         if (dragActive) return;
         motion.trigger('blink', 420);
         if (anim.currentBridgeState === 'idle') anim.playPreview('waving');
+        statusCard.show();
+    });
+    containerEl.addEventListener('mouseleave', () => {
+        statusCard.scheduleHide();
     });
 }
 
@@ -498,6 +654,7 @@ spriteEl.addEventListener('mousedown', (e) => {
     dragLastX = e.screenX;
     dragDirection = null;
     motion.setDragging(true);
+    statusCard.hide({ force: true });
     if (window.unipetAPI) {
         window.unipetAPI.petDragStart({ screenX: e.screenX, screenY: e.screenY });
     }
