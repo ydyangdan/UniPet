@@ -216,28 +216,51 @@ body:active {
 }
 
 #pet-status-card {
+    --status-accent: 126, 236, 255;
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 7px);
     left: 50%;
     z-index: 4;
-    width: 168px;
-    max-width: 168px;
-    padding: 8px 9px 9px;
+    width: 164px;
+    max-width: 164px;
+    padding: 9px 10px 9px;
     transform: translateX(-50%) translateY(0);
-    border: 1px solid rgba(157, 211, 255, 0.16);
+    border: 1px solid rgba(var(--status-accent), 0.38);
     border-radius: 8px;
-    background: rgba(9, 13, 20, 0.82);
+    background:
+        linear-gradient(180deg, rgba(18, 34, 46, 0.9), rgba(7, 12, 20, 0.86));
     box-shadow:
-        0 10px 24px rgba(0, 0, 0, 0.26),
-        inset 0 1px 0 rgba(255, 255, 255, 0.055);
+        0 10px 24px rgba(0, 0, 0, 0.28),
+        0 0 18px rgba(var(--status-accent), 0.2),
+        inset 0 0 18px rgba(var(--status-accent), 0.055),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
     color: rgba(238, 244, 255, 0.94);
     font-family: "Segoe UI", sans-serif;
     font-size: 11px;
     line-height: 1.32;
+    letter-spacing: 0;
     overflow: hidden;
     pointer-events: none;
     backdrop-filter: blur(12px);
     transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+#pet-status-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 8px;
+    left: 8px;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        rgba(var(--status-accent), 0),
+        rgba(var(--status-accent), 0.85),
+        rgba(180, 255, 218, 0.7),
+        rgba(var(--status-accent), 0)
+    );
+    box-shadow: 0 0 10px rgba(var(--status-accent), 0.55);
+    pointer-events: none;
 }
 
 #pet-status-card.hidden {
@@ -246,22 +269,41 @@ body:active {
 }
 
 .status-card-header {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 5px;
+    gap: 7px;
+    margin-bottom: 6px;
+    padding-left: 20px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(var(--status-accent), 0.12);
     min-width: 0;
+}
+
+.status-card-header::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    left: 0;
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 214, 112, 0.9);
+    box-shadow:
+        7px 0 rgba(126, 236, 255, 0.82),
+        14px 0 rgba(151, 245, 190, 0.78);
 }
 
 .status-card-title {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
-    color: rgba(244, 248, 255, 0.96);
+    color: rgba(238, 255, 250, 0.97);
     font-size: 12px;
     font-weight: 600;
+    text-shadow: 0 0 8px rgba(var(--status-accent), 0.24);
 }
 
 #status-card-state {
@@ -272,21 +314,21 @@ body:active {
 
 #status-card-dot {
     flex: 0 0 auto;
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 999px;
-    background: #6ee7b7;
-    box-shadow: 0 0 12px rgba(110, 231, 183, 0.85);
+    background: rgb(var(--status-accent));
+    box-shadow: 0 0 12px rgba(var(--status-accent), 0.9);
 }
 
 #status-card-source {
     flex: 0 1 auto;
-    max-width: 72px;
+    max-width: 58px;
     padding: 1px 5px 2px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(var(--status-accent), 0.22);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.055);
-    color: rgba(205, 216, 235, 0.72);
+    background: rgba(var(--status-accent), 0.09);
+    color: rgba(220, 250, 255, 0.78);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -300,7 +342,7 @@ body:active {
     display: flex;
     align-items: flex-start;
     gap: 7px;
-    min-height: 16px;
+    min-height: 15px;
     padding-top: 2px;
 }
 
@@ -310,50 +352,40 @@ body:active {
 
 .status-card-label {
     flex: 0 0 44px;
-    color: rgba(190, 203, 224, 0.62);
+    color: rgba(182, 232, 245, 0.6);
 }
 
 .status-card-value {
     flex: 1;
     min-width: 0;
-    color: rgba(238, 244, 255, 0.92);
+    color: rgba(242, 255, 249, 0.94);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 #pet-status-card.status-running {
-    border-color: rgba(82, 230, 154, 0.22);
+    --status-accent: 110, 231, 183;
 }
 
-#pet-status-card.status-running #status-card-dot,
-#pet-status-card.status-done #status-card-dot {
-    background: #6ee7b7;
-    box-shadow: 0 0 12px rgba(110, 231, 183, 0.9);
+#pet-status-card.status-done {
+    --status-accent: 110, 231, 183;
 }
 
-#pet-status-card.status-thinking #status-card-dot {
-    background: #f8d66d;
-    box-shadow: 0 0 12px rgba(248, 214, 109, 0.9);
+#pet-status-card.status-thinking {
+    --status-accent: 248, 214, 109;
 }
 
-#pet-status-card.status-waiting #status-card-dot {
-    background: #93c5fd;
-    box-shadow: 0 0 12px rgba(147, 197, 253, 0.78);
+#pet-status-card.status-waiting {
+    --status-accent: 147, 197, 253;
 }
 
-#pet-status-card.status-confirm #status-card-dot {
-    background: #a7b9ff;
-    box-shadow: 0 0 12px rgba(167, 185, 255, 0.86);
+#pet-status-card.status-confirm {
+    --status-accent: 167, 185, 255;
 }
 
 #pet-status-card.status-problem {
-    border-color: rgba(255, 116, 116, 0.26);
-}
-
-#pet-status-card.status-problem #status-card-dot {
-    background: #ff7474;
-    box-shadow: 0 0 12px rgba(255, 116, 116, 0.9);
+    --status-accent: 255, 116, 116;
 }
 
 @keyframes pet-breathe {
