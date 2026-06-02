@@ -22,16 +22,32 @@ test('infers shell, thinking, success, and failure behavior', () => {
     pick(inferBehavior({ state: 'running', message: 'thinking through plan' })),
     { animation: 'running', emotion: 'focused', rule: 'thinking' },
   );
+  assert.equal(inferBehavior({ state: 'running', message: 'thinking through plan' }).displayLabel, '思考中');
+  assert.equal(inferBehavior({ state: 'running', message: 'thinking through plan' }).bubbleText, '我在想想怎么做更好...');
   assert.equal(inferBehavior({ state: 'review', message: 'all tests pass' }).emotion, 'happy');
   assert.equal(inferBehavior({ state: 'failed', message: 'tool failed with timeout' }).effect, 'shake');
+  assert.equal(inferBehavior({ state: 'failed', message: 'tool failed with timeout' }).bubbleText, '好像遇到一些问题了...');
   assert.equal(inferBehavior({ state: 'review', message: 'done with error' }).emotion, 'frustrated');
 });
 
 test('distinguishes permission, build, network, and delegate behavior', () => {
   assert.equal(inferBehavior({ state: 'waiting', message: 'Waiting for approval' }).rule, 'permission');
+  assert.equal(inferBehavior({ state: 'waiting', message: 'Waiting for approval' }).displayLabel, '需要确认');
   assert.equal(inferBehavior({ state: 'running', message: 'compile package' }).animation, 'running_right');
   assert.equal(inferBehavior({ state: 'running', message: 'fetch search results' }).animation, 'waving');
   assert.equal(inferBehavior({ state: 'running', message: 'delegate task to worker' }).animation, 'jumping');
+});
+
+test('uses short task-specific copy for safe running work', () => {
+  assert.equal(inferBehavior({ state: 'running', message: 'read_file package.json' }).bubbleText, '我在翻翻项目文件。');
+  assert.equal(inferBehavior({ state: 'running', message: 'apply_patch renderer.js' }).bubbleText, '正在改文件啦。');
+  assert.equal(inferBehavior({ state: 'running', message: 'exec_shell npm test' }).bubbleText, '正在检查稳不稳。');
+});
+
+test('hides unsafe message summaries from display cards', () => {
+  const intent = inferBehavior({ state: 'running', message: 'C:\\Users\\yangd\\secret.txt' });
+  assert.equal(intent.messageSummary, '详情已隐藏');
+  assert.equal(intent.bubbleText, '专注工作中，别打扰我哦~');
 });
 
 test('keeps short lived life state outside the bridge protocol', () => {

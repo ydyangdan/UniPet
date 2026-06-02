@@ -20,6 +20,20 @@
       if (chars.length <= limit) return raw;
       return `${chars.slice(0, limit).join('')}...`;
     },
+    displayFor() {
+      return {
+        displayStatus: 'waiting',
+        displayLabel: '等待中',
+        displayTone: 'waiting',
+        displayEvent: '待机',
+      };
+    },
+    bubbleTextFor() {
+      return '';
+    },
+    safeSummary() {
+      return '';
+    },
   };
   const MESSAGE_LIMIT = bubblePolicy.MESSAGE_LIMIT;
 
@@ -149,7 +163,7 @@
       ? { ...stateSignal, ...messageSignal.signal, kind: messageSignal.kind, rule: messageSignal.kind }
       : { ...stateSignal, rule: 'state' };
 
-    return {
+    const signal = {
       state,
       message,
       kind: selected.kind,
@@ -159,7 +173,14 @@
       urgency: selected.urgency,
       energyDelta: selected.energyDelta,
       motion: selected.motion,
-      bubbleText: bubblePolicy.clipBubbleText(message),
+    };
+    const display = bubblePolicy.displayFor(signal);
+
+    return {
+      ...signal,
+      ...display,
+      messageSummary: bubblePolicy.safeSummary(message),
+      bubbleText: bubblePolicy.bubbleTextFor(signal, display),
     };
   }
 
@@ -168,6 +189,9 @@
     STATE_SIGNALS,
     MESSAGE_SIGNALS,
     clipBubbleText: bubblePolicy.clipBubbleText,
+    safeSummary: bubblePolicy.safeSummary,
+    displayFor: bubblePolicy.displayFor,
+    bubbleTextFor: bubblePolicy.bubbleTextFor,
     interpretEvent,
   };
 });

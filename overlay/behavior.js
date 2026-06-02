@@ -26,6 +26,7 @@
     MESSAGE_LIMIT: interpreter.MESSAGE_LIMIT,
     clipBubbleText: interpreter.clipBubbleText,
     interpretEvent: interpreter.interpretEvent,
+    safeSummary: interpreter.safeSummary,
     createLifeState: planner.createLifeState,
     updateLifeState: planner.updateLifeState,
     inferBehavior,
