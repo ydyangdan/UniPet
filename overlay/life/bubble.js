@@ -38,43 +38,43 @@
     running: {
       label: '运行中',
       tone: 'running',
-      bubbleText: '专注工作中，别打扰我哦~',
+      bubbleText: '我在盯着它跑。',
     },
     thinking: {
       label: '思考中',
       tone: 'thinking',
-      bubbleText: '我在想想怎么做更好...',
+      bubbleText: '它在琢磨下一步。',
     },
     waiting: {
       label: '等待中',
       tone: 'waiting',
-      bubbleText: '我在待机，随时开工。',
+      bubbleText: '它先停在这里等着。',
     },
     confirm: {
       label: '需要确认',
       tone: 'confirm',
-      bubbleText: '这里需要你确认一下。',
+      bubbleText: '这步等你点头。',
     },
     done: {
       label: '完成',
       tone: 'done',
-      bubbleText: '这一步完成啦。',
+      bubbleText: '完成啦，等你看看。',
     },
     problem: {
       label: '遇到问题',
       tone: 'problem',
-      bubbleText: '好像遇到一些问题了...',
+      bubbleText: '这里需要看一眼。',
     },
   };
 
   const KIND_BUBBLE_TEXT = {
-    read: '我在翻翻项目文件。',
-    write: '正在改文件啦。',
-    shell: '我去跑一下命令。',
-    test: '正在检查稳不稳。',
-    build: '正在打包看看。',
-    network: '我去外面看一眼。',
-    delegate: '我在分派小任务。',
+    read: '它在翻项目文件。',
+    write: '它在改文件啦。',
+    shell: '它在跑命令。',
+    test: '它在跑检查。',
+    build: '它在构建打包。',
+    network: '它在请求外部信息。',
+    delegate: '它在安排子任务。',
   };
 
   const KIND_EVENT_LABELS = {
