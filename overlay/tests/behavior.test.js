@@ -28,6 +28,21 @@ test('infers shell, thinking, success, and failure behavior', () => {
   assert.equal(inferBehavior({ state: 'review', message: 'done with error' }).emotion, 'frustrated');
 });
 
+test('treats tool completion as a light running update', () => {
+  const intent = inferBehavior({ state: 'running', message: 'Finished Read' });
+  assert.equal(intent.rule, 'finished');
+  assert.equal(intent.displayLabel, '运行中');
+  assert.equal(intent.animation, 'idle');
+  assert.equal(intent.bubbleText, '这步刚跑完。');
+});
+
+test('keeps generic running copy short and readable', () => {
+  const intent = inferBehavior({ state: 'running', message: 'Codex is working' });
+  assert.equal(intent.rule, 'state');
+  assert.equal(intent.displayLabel, '运行中');
+  assert.equal(intent.bubbleText, '我在盯着它跑。');
+});
+
 test('distinguishes permission, build, network, and delegate behavior', () => {
   assert.equal(inferBehavior({ state: 'waiting', message: 'Waiting for approval' }).rule, 'permission');
   assert.equal(inferBehavior({ state: 'waiting', message: 'Waiting for approval' }).displayLabel, '需要确认');
@@ -48,6 +63,14 @@ test('keeps short lived life state outside the bridge protocol', () => {
   assert.equal(intent.life.energy > life.energy, true);
   assert.equal(intent.life.attention, 'agent');
   assert.equal(Object.hasOwn(intent, 'source'), false);
+});
+
+test('keeps idle display separate from waiting', () => {
+  const intent = inferBehavior({ state: 'idle', message: 'UniPet ready' });
+  assert.equal(intent.rule, 'state');
+  assert.equal(intent.displayStatus, 'idle');
+  assert.equal(intent.displayLabel, '待命中');
+  assert.equal(intent.animation, 'idle');
 });
 
 test('does not require bridge protocol fields beyond state and message', () => {

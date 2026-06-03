@@ -11,6 +11,7 @@ test('clips bubble text by unicode code points', () => {
 test('chooses bubble duration from signal kind before state', () => {
   assert.equal(bubble.durationFor({ state: 'waiting', kind: 'permission' }), 12000);
   assert.equal(bubble.durationFor({ state: 'running', kind: 'test' }), 4200);
+  assert.equal(bubble.durationFor({ state: 'running', kind: 'finished' }), 2800);
   assert.equal(bubble.durationFor({ state: 'waiting', kind: 'waiting' }), 10000);
   assert.equal(bubble.durationFor({ state: 'unknown', kind: 'unknown' }), 0);
 });
@@ -32,9 +33,19 @@ test('keeps running copy anchored to agent activity', () => {
   assert.equal(bubble.bubbleTextFor({ state: 'running', kind: 'build' }), '它在构建打包。');
   assert.equal(bubble.bubbleTextFor({ state: 'running', kind: 'network' }), '它在请求外部信息。');
   assert.equal(bubble.bubbleTextFor({ state: 'running', kind: 'delegate' }), '它在安排子任务。');
+  assert.equal(bubble.bubbleTextFor({ state: 'running', kind: 'finished' }), '这步刚跑完。');
 });
 
 test('derives display status without changing protocol states', () => {
+  assert.deepEqual(
+    bubble.displayFor({ state: 'idle', kind: 'idle' }),
+    {
+      displayStatus: 'idle',
+      displayLabel: '待命中',
+      displayTone: 'idle',
+      displayEvent: '待机',
+    },
+  );
   assert.deepEqual(
     bubble.displayFor({ state: 'running', kind: 'thinking' }),
     {

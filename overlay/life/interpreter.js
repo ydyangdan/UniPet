@@ -22,9 +22,9 @@
     },
     displayFor() {
       return {
-        displayStatus: 'waiting',
-        displayLabel: '等待中',
-        displayTone: 'waiting',
+        displayStatus: 'idle',
+        displayLabel: '待命中',
+        displayTone: 'idle',
         displayEvent: '待机',
       };
     },
@@ -85,6 +85,11 @@
   };
 
   const MESSAGE_SIGNALS = [
+    {
+      kind: 'finished',
+      pattern: keywordPattern(['finished', 'finish', 'tool finished', 'step finished']),
+      signal: { mood: 'focused', attention: 'agent', urgency: 'low', energyDelta: 1, motion: 'idle' },
+    },
     {
       kind: 'failure',
       pattern: keywordPattern(['fail', 'failed', 'failure', 'error', 'denied', 'timeout', 'exception', 'abort', 'crash', 'rejected']),
@@ -158,7 +163,7 @@
     const state = normalizeState(pet && pet.state);
     const message = String((pet && pet.message) || '').trim();
     const stateSignal = STATE_SIGNALS[state] || STATE_SIGNALS.idle;
-    const messageSignal = matchMessageSignal(message);
+    const messageSignal = state === 'idle' ? null : matchMessageSignal(message);
     const selected = messageSignal
       ? { ...stateSignal, ...messageSignal.signal, kind: messageSignal.kind, rule: messageSignal.kind }
       : { ...stateSignal, rule: 'state' };

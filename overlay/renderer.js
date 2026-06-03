@@ -44,6 +44,7 @@ const statusCardEl = document.getElementById('pet-status-card');
 const statusCardStateEl = document.getElementById('status-card-state');
 const statusCardSourceEl = document.getElementById('status-card-source');
 const statusCardTaskRowEl = document.getElementById('status-card-task-row');
+const statusCardSummaryLabelEl = document.getElementById('status-card-summary-label');
 const statusCardTaskEl = document.getElementById('status-card-task');
 const statusCardDurationRowEl = document.getElementById('status-card-duration-row');
 const statusCardDurationEl = document.getElementById('status-card-duration');
@@ -53,13 +54,16 @@ const behavior = window.UnipetBehavior || {
         animation: pet && pet.state || 'idle',
         message: pet && pet.message || '',
         bubbleText: pet && pet.message || '',
-        displayStatus: pet && pet.state || 'waiting',
-        displayLabel: pet && pet.state || 'waiting',
-        displayTone: pet && pet.state || 'waiting',
+        displayStatus: pet && pet.state || 'idle',
+        displayLabel: pet && pet.state || 'idle',
+        displayTone: pet && pet.state || 'idle',
     }),
     clipBubbleText: (text) => String(text || '').slice(0, 20),
     safeSummary: (text) => String(text || '').slice(0, 44),
 };
+const CARD_SUMMARY_LIMIT = 44;
+const DONE_SUMMARY_LIMIT = 28;
+const DONE_FALLBACK_TEXT = '已执行完成，请查看。';
 const BUBBLE_MIN_VISIBLE_MS = 3200;
 const BUBBLE_STATE_MS = {
     idle: 0,
@@ -68,6 +72,12 @@ const BUBBLE_STATE_MS = {
     failed: 9000,
     review: 6500,
 };
+const IDLE_COMPANION_BUBBLES = Object.freeze([
+    '我在呢。',
+    '准备好啦。',
+    '一起加油。',
+]);
+let idleCompanionBubbleIndex = 0;
 
 function configureSpriteSize() {
     const root = document.documentElement;
@@ -99,7 +109,7 @@ const motion = {
 
     apply(intent) {
         setPrefixedClass('state-', intent.state || 'idle');
-        setPrefixedClass('display-', intent.displayStatus || intent.state || 'waiting');
+        setPrefixedClass('display-', intent.displayStatus || intent.state || 'idle');
         setPrefixedClass('emotion-', intent.emotion || 'calm');
         setPrefixedClass('motion-', intent.motion || 'idle');
     },
@@ -232,7 +242,7 @@ const anim = {
         if (this.currentState === normalized && this.animationLoops(cfg) && !this.currentFrameLimit) {
             if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState, intent.bubbleMs);
             statusEl.textContent = intent.displayLabel || nextBridgeState;
-            statusCard.render();
+            syncStatusCardForBridgeState();
             if (isSettling) this.normalizeIdleAfterSettle();
             return;
         }
@@ -250,7 +260,7 @@ const anim = {
         // Show bubble if message provided
         if (intent.bubbleText) this.showBubble(intent.bubbleText, nextBridgeState, intent.bubbleMs);
         statusEl.textContent = intent.displayLabel || nextBridgeState;
-        statusCard.render();
+        syncStatusCardForBridgeState();
         if (isSettling) this.normalizeIdleAfterSettle();
     },
 
@@ -468,20 +478,33 @@ function normalizeBubbleMs(requestedMs, stateName) {
 
 const statusCard = {
     hideTimer: null,
+    pinTimer: null,
     tickTimer: null,
+    revealToken: 0,
     pinned: false,
 
-    show({ pinned = false } = {}) {
+    show({ pinned = false, autoHideMs = 0 } = {}) {
         if (!statusCardEl) return;
-        clearTimeout(this.hideTimer);
-        if (pinned) this.pinned = true;
+        if (isCompanionMode()) {
+            this.hide({ force: true });
+            return;
+        }
+        if (pinned) {
+            clearTimeout(this.hideTimer);
+            clearTimeout(this.pinTimer);
+            this.pinned = true;
+        } else if (!this.pinned) {
+            clearTimeout(this.hideTimer);
+        }
+        const wasHidden = statusCardEl.classList.contains('hidden');
         this.render();
         bubbleEl.classList.add('hidden');
-        statusCardEl.classList.remove('hidden');
-        statusCardEl.setAttribute('aria-hidden', 'false');
+        this.reveal(wasHidden);
         this.startTicking();
         if (pinned) {
-            this.hideTimer = setTimeout(() => this.hide({ force: true }), 6500);
+            this.pinTimer = setTimeout(() => this.hide({ force: true }), 6500);
+        } else if (!this.pinned && autoHideMs > 0) {
+            this.hideTimer = setTimeout(() => this.hide(), autoHideMs);
         }
     },
 
@@ -493,10 +516,15 @@ const statusCard = {
 
     hide({ force = false } = {}) {
         if (!force && this.pinned) return;
+        this.revealToken += 1;
         clearTimeout(this.hideTimer);
+        clearTimeout(this.pinTimer);
+        this.hideTimer = null;
+        this.pinTimer = null;
         this.pinned = false;
         if (statusCardEl) {
             statusCardEl.classList.add('hidden');
+            statusCardEl.classList.remove('is-preparing', 'is-revealing');
             statusCardEl.setAttribute('aria-hidden', 'true');
         }
         this.stopTicking();
@@ -522,25 +550,60 @@ const statusCard = {
         this.tickTimer = null;
     },
 
+    reveal(wasHidden) {
+        if (!statusCardEl) return;
+        this.revealToken += 1;
+        const token = this.revealToken;
+        statusCardEl.setAttribute('aria-hidden', 'false');
+        if (!wasHidden) {
+            statusCardEl.classList.remove('hidden', 'is-preparing', 'is-revealing');
+            return;
+        }
+        statusCardEl.classList.add('is-preparing');
+        void statusCardEl.offsetHeight;
+        requestAnimationFrame(() => {
+            if (token !== this.revealToken || !statusCardEl) return;
+            statusCardEl.classList.remove('hidden', 'is-preparing');
+            statusCardEl.classList.add('is-revealing');
+            requestAnimationFrame(() => {
+                if (token !== this.revealToken || !statusCardEl) return;
+                statusCardEl.classList.remove('is-revealing');
+            });
+        });
+    },
+
     render() {
         if (!statusCardEl) return;
         const intent = anim.currentIntent || {};
         const pet = anim.activePet || null;
-        const displayStatus = intent.displayStatus || (intent.state === 'failed' ? 'problem' : intent.state) || 'waiting';
+        const displayStatus = intent.displayStatus || (intent.state === 'failed' ? 'problem' : intent.state) || 'idle';
         const displayLabel = intent.displayLabel || labelForDisplayStatus(displayStatus);
-        const task = taskSummary(pet, intent);
-        const duration = formatDuration(pet && pet.updatedAt);
+        const task = taskSummary(pet, intent, displayStatus);
+        const duration = formatDuration(pet && (pet.startedAt ?? pet.updatedAt));
 
         setStatusCardTone(displayStatus);
         statusCardStateEl.textContent = displayLabel;
         statusCardSourceEl.textContent = pet && pet.source ? String(pet.source) : '';
+        if (statusCardSummaryLabelEl) statusCardSummaryLabelEl.textContent = summaryLabelFor(displayStatus);
         setCardRow(statusCardTaskRowEl, statusCardTaskEl, task);
         setCardRow(statusCardDurationRowEl, statusCardDurationEl, duration);
     },
 };
 
+function isCompanionMode() {
+    return anim.currentBridgeState === 'idle';
+}
+
+function syncStatusCardForBridgeState() {
+    if (isCompanionMode()) {
+        statusCard.hide({ force: true });
+        return;
+    }
+    statusCard.render();
+}
+
 function setStatusCardTone(displayStatus) {
-    const tone = displayStatus || 'waiting';
+    const tone = displayStatus || 'idle';
     for (const name of Array.from(statusCardEl.classList)) {
         if (name.startsWith('status-')) statusCardEl.classList.remove(name);
     }
@@ -554,36 +617,81 @@ function setCardRow(rowEl, valueEl, value) {
     valueEl.textContent = text;
 }
 
-function taskSummary(pet, intent) {
+function taskSummary(pet, intent, displayStatus) {
     if (!pet) return '';
-    const summary = intent.messageSummary || behavior.safeSummary(pet.message);
+    const summary = normalizeCardSummary(intent.messageSummary || behavior.safeSummary(pet.message));
     const stateText = String(pet.state || '').trim();
+
+    if (displayStatus === 'done') {
+        if (summary && summary !== stateText && !isLowSignalDoneSummary(summary)) {
+            return clipCardText(summary, DONE_SUMMARY_LIMIT);
+        }
+        return DONE_FALLBACK_TEXT;
+    }
+
     if (!summary || summary === stateText) return '';
-    return summary;
+    if (displayStatus === 'idle' && isQuietIdleSummary(summary)) return '';
+    return clipCardText(summary, CARD_SUMMARY_LIMIT);
+}
+
+function normalizeCardSummary(summary) {
+    return String(summary || '').trim().replace(/\s+/g, ' ');
+}
+
+function clipCardText(text, limit) {
+    const raw = String(text || '').trim();
+    const chars = Array.from(raw);
+    if (chars.length <= limit) return raw;
+    return `${chars.slice(0, limit).join('')}...`;
+}
+
+function isLowSignalDoneSummary(summary) {
+    return /^(?:done|complete|completed|finish|finished|success|succeeded|ok|ready|review|完成|已完成|任务完成|执行完成)[。.!！]?$/i
+        .test(String(summary || '').trim());
+}
+
+function isQuietIdleSummary(summary) {
+    return /^(?:unipet|codex|claude code|deepseek-tui|hermes|openclaw)?\s*(?:ready|cleared|session ended|session closed)$/i
+        .test(String(summary || '').trim());
+}
+
+function summaryLabelFor(displayStatus) {
+    if (displayStatus === 'running' || displayStatus === 'thinking') return '当前任务';
+    if (displayStatus === 'idle') return '状态提示';
+    if (displayStatus === 'done') return '执行结果';
+    if (displayStatus === 'problem') return '问题摘要';
+    return '消息摘要';
 }
 
 function formatDuration(updatedAt) {
     const value = Number(updatedAt);
     if (!Number.isFinite(value) || value <= 0) return '';
     const seconds = Math.max(0, Math.floor(Date.now() / 1000 - value));
-    if (seconds < 5) return '刚刚';
-    if (seconds < 60) return `${seconds}秒`;
+    if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}分`;
-    const hours = Math.floor(minutes / 60);
-    const restMinutes = minutes % 60;
-    return restMinutes ? `${hours}小时${restMinutes}分` : `${hours}小时`;
+    const restSeconds = seconds % 60;
+    if (seconds < 3600) return `${minutes}m${restSeconds}s`;
+    const hours = Math.floor(seconds / 3600);
+    const restMinutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h${String(restMinutes).padStart(2, '0')}m`;
 }
 
 function labelForDisplayStatus(displayStatus) {
     return {
+        idle: '待命中',
         running: '运行中',
         thinking: '思考中',
         waiting: '等待中',
         confirm: '需要确认',
         done: '完成',
         problem: '遇到问题',
-    }[displayStatus] || '等待中';
+    }[displayStatus] || '待命中';
+}
+
+function nextIdleCompanionBubble() {
+    const text = IDLE_COMPANION_BUBBLES[idleCompanionBubbleIndex % IDLE_COMPANION_BUBBLES.length];
+    idleCompanionBubbleIndex += 1;
+    return text;
 }
 
 // ---- Initialise ----
@@ -620,13 +728,22 @@ function init() {
     // Pointer interactions are temporary animations; bridge state remains authoritative.
     spriteEl.addEventListener('click', () => {
         anim.playPreview('jumping');
+        if (isCompanionMode()) {
+            statusCard.hide({ force: true });
+            anim.showBubble(nextIdleCompanionBubble(), 'idle', 3200);
+            return;
+        }
         statusCard.togglePinned();
     });
     containerEl.addEventListener('mouseenter', () => {
         if (dragActive) return;
         motion.trigger('blink', 420);
-        if (anim.currentBridgeState === 'idle') anim.playPreview('waving');
-        statusCard.show();
+        if (isCompanionMode()) {
+            statusCard.hide({ force: true });
+            anim.playPreview('waving');
+            return;
+        }
+        statusCard.show({ autoHideMs: 2800 });
     });
     containerEl.addEventListener('mouseleave', () => {
         statusCard.scheduleHide();

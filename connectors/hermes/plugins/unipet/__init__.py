@@ -41,6 +41,16 @@ HTTP_TIMEOUT = max(0.05, _env_int("UNIPET_HERMES_TIMEOUT_MS", 350) / 1000)
 MIN_INTERVAL = max(0.0, _env_int("UNIPET_HERMES_MIN_INTERVAL_MS", 700) / 1000)
 ERROR_STATUSES = {"error", "failed", "failure", "exception"}
 ERROR_TEXT_PREFIXES = ("error:", "exception:", "traceback ")
+ERROR_TEXT_MARKERS = (
+    "api call failed",
+    "api failed",
+    "connection error",
+    "network error",
+    "rate limited",
+    "max retries",
+    "failed after",
+    "invalid api response",
+)
 ACTIVE_TTL = 120000
 REVIEW_TTL = 12000
 FAILURE_TTL = 20000
@@ -81,9 +91,40 @@ def _event(
     return payload
 
 
+def _is_error_text(text: str) -> bool:
+    lower = text.strip().lower()
+    if not lower:
+        return False
+    return lower.startswith(ERROR_TEXT_PREFIXES) or any(marker in lower for marker in ERROR_TEXT_MARKERS)
+
+
+def _error_message(value: Any, fallback: str = "Hermes API call failed") -> str:
+    if value is None:
+        return fallback
+    if isinstance(value, BaseException):
+        return _clip(str(value), fallback)
+    if isinstance(value, dict):
+        for key in ("error", "exception", "message", "detail", "reason", "status"):
+            if value.get(key):
+                return _clip(value.get(key), fallback)
+        return fallback
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return fallback
+        try:
+            parsed = json.loads(text)
+        except Exception:
+            return _clip(text, fallback)
+        return _error_message(parsed, fallback)
+    return _clip(value, fallback)
+
+
 def _is_error_result(result: Any) -> bool:
     if result is None:
         return False
+    if isinstance(result, BaseException):
+        return True
     if isinstance(result, dict):
         status = str(result.get("status") or result.get("state") or "").strip().lower()
         return bool(
@@ -102,8 +143,7 @@ def _is_error_result(result: Any) -> bool:
     try:
         parsed = json.loads(text)
     except Exception:
-        lower = text.lower()
-        return lower.startswith(ERROR_TEXT_PREFIXES)
+        return _is_error_text(text)
     return _is_error_result(parsed)
 
 
@@ -212,6 +252,10 @@ def _on_pre_llm_call(**_: Any) -> None:
     _emit(_event("running", "Hermes is thinking", ttl=ACTIVE_TTL))
 
 
+def _on_pre_api_request(**_: Any) -> None:
+    _emit(_event("running", "Hermes is thinking", ttl=ACTIVE_TTL))
+
+
 def _on_pre_tool_call(tool_name: str = "", **_: Any) -> None:
     _emit(_event("running", f"Running {_short_tool_name(tool_name)}", ttl=ACTIVE_TTL))
 
@@ -233,7 +277,27 @@ def _on_post_approval_response(choice: str = "", **_: Any) -> None:
         _emit(_event("running", "Approval received", ttl=ACTIVE_TTL))
 
 
-def _on_post_llm_call(**_: Any) -> None:
+def _on_post_llm_call(
+    assistant_response: Any = None,
+    response: Any = None,
+    result: Any = None,
+    error: Any = None,
+    exception: Any = None,
+    **kwargs: Any,
+) -> None:
+    candidates = (
+        error,
+        exception,
+        result,
+        response,
+        assistant_response,
+        kwargs.get("message"),
+        kwargs.get("output"),
+    )
+    for candidate in candidates:
+        if _is_error_result(candidate):
+            _emit(_event("failed", _error_message(candidate), ttl=FAILURE_TTL))
+            return
     _emit(_event("review", "Done, please review", ttl=REVIEW_TTL))
 
 
@@ -251,6 +315,7 @@ def _remove_source(**_: Any) -> None:
 def register(ctx) -> None:
     ctx.register_hook("on_session_start", _on_session_start)
     ctx.register_hook("pre_llm_call", _on_pre_llm_call)
+    ctx.register_hook("pre_api_request", _on_pre_api_request)
     ctx.register_hook("pre_tool_call", _on_pre_tool_call)
     ctx.register_hook("post_tool_call", _on_post_tool_call)
     ctx.register_hook("pre_approval_request", _on_pre_approval_request)

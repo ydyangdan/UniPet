@@ -8,7 +8,7 @@ const { spawn, spawnSync } = require('child_process');
 const connectorLifecycle = require('./connectors');
 const market = require('./market');
 const pets = require('./pets');
-const { PET_STATES, normalizeState, normalizeTtl } = require('./protocol');
+const { LOCAL_SOURCE_ID, PET_STATES, normalizeState, normalizeTtl } = require('./protocol');
 
 console.log = (...args) => {
   fs.writeSync(1, `${args.join(' ')}\n`);
@@ -438,6 +438,7 @@ async function cmdStatus() {
 
 function formatExpiry(pet) {
   if (!pet || pet.ttl === null || pet.ttl === undefined) return '';
+  if (pet.quiet) return ' still-running';
   const expiresAt = Number(pet.updatedAt || 0) + Number(pet.ttl || 0) / 1000;
   const remaining = Math.ceil(expiresAt - Date.now() / 1000);
   if (!Number.isFinite(remaining)) return '';
@@ -532,7 +533,7 @@ async function cmdState(args) {
     return 1;
   }
   const payload = {
-    source: options.source || 'local-unipet',
+    source: options.source || LOCAL_SOURCE_ID,
     state: normalizedState,
     message,
     action: 'update',
@@ -555,12 +556,20 @@ async function cmdClear() {
     console.error('UniPet bridge is not available.');
     return 1;
   }
-  const result = await requestJson('POST', runtime.port || DEFAULT_PORT, '/api/pet/events', {
-    source: 'local-unipet',
+  const port = runtime.port || DEFAULT_PORT;
+  const host = runtime.host || DEFAULT_HOST;
+  await requestJson('POST', port, '/api/pet/events', {
+    source: LOCAL_SOURCE_ID,
     state: 'idle',
     message: 'cleared',
     action: 'clear',
-  }, runtime.host || DEFAULT_HOST);
+  }, host);
+  const result = await requestJson('POST', port, '/api/pet/events', {
+    source: LOCAL_SOURCE_ID,
+    state: 'idle',
+    message: 'cleared',
+    action: 'remove',
+  }, host);
   console.log(`Cleared. active state -> ${result.activeState || '?'}`);
   return 0;
 }

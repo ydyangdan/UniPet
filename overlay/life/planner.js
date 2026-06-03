@@ -40,6 +40,7 @@
   const KIND_INTENTS = {
     failure: { animation: 'failed', emotion: 'frustrated', effect: 'shake', motion: 'alert' },
     success: { animation: 'review', emotion: 'happy', effect: 'bounce', motion: 'idle' },
+    finished: { animation: 'idle', emotion: 'focused', motion: 'idle' },
     permission: { animation: 'waiting', emotion: 'curious', motion: 'wait' },
     delegate: { animation: 'jumping', emotion: 'excited', effect: 'bounce', motion: 'work' },
     test: { animation: 'running', emotion: 'focused', motion: 'work' },

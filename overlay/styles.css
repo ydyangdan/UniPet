@@ -223,8 +223,8 @@ body:active {
     z-index: 4;
     width: 164px;
     max-width: 164px;
-    padding: 9px 10px 9px;
-    transform: translateX(-50%) translateY(0);
+    padding: 9px 10px 10px;
+    transform: translate3d(-50%, 0, 0);
     border: 1px solid rgba(var(--status-accent), 0.38);
     border-radius: 8px;
     background:
@@ -241,8 +241,12 @@ body:active {
     letter-spacing: 0;
     overflow: hidden;
     pointer-events: none;
+    visibility: visible;
     backdrop-filter: blur(12px);
     transition: opacity 0.18s ease, transform 0.18s ease;
+    will-change: opacity, transform;
+    backface-visibility: hidden;
+    contain: layout paint;
 }
 
 #pet-status-card::before {
@@ -265,7 +269,17 @@ body:active {
 
 #pet-status-card.hidden {
     opacity: 0;
-    transform: translateX(-50%) translateY(-4px);
+    visibility: hidden;
+    transform: translate3d(-50%, -4px, 0);
+}
+
+#pet-status-card.is-preparing {
+    opacity: 0;
+    visibility: hidden;
+}
+
+#pet-status-card.is-revealing {
+    transform: translate3d(-50%, 0.01px, 0);
 }
 
 .status-card-header {
@@ -364,8 +378,20 @@ body:active {
     white-space: nowrap;
 }
 
+#status-card-task {
+    display: -webkit-box;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
 #pet-status-card.status-running {
     --status-accent: 110, 231, 183;
+}
+
+#pet-status-card.status-idle {
+    --status-accent: 126, 236, 255;
 }
 
 #pet-status-card.status-done {

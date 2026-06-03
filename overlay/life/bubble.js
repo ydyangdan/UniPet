@@ -23,6 +23,7 @@
   const KIND_DURATIONS_MS = {
     failure: 9000,
     success: 6500,
+    finished: 2800,
     permission: 12000,
     delegate: 5000,
     test: 4200,
@@ -35,6 +36,11 @@
   };
 
   const DISPLAY_STATUS = {
+    idle: {
+      label: '待命中',
+      tone: 'idle',
+      bubbleText: '我在，随时待命。',
+    },
     running: {
       label: '运行中',
       tone: 'running',
@@ -83,6 +89,7 @@
     waiting: '等待中',
     failure: '出现问题',
     success: '任务完成',
+    finished: '步骤完成',
     permission: '等待确认',
     delegate: '分派任务',
     test: '运行检查',
@@ -113,17 +120,19 @@
   function displayStatusFor(signal = {}) {
     const state = String(signal.state || 'idle');
     const kind = String(signal.kind || '');
+    if (state === 'idle' || kind === 'idle') return 'idle';
     if (state === 'failed' || kind === 'failure') return 'problem';
     if (state === 'review' || kind === 'success') return 'done';
     if (kind === 'permission') return 'confirm';
     if (kind === 'thinking') return 'thinking';
     if (state === 'running') return 'running';
-    return 'waiting';
+    if (state === 'waiting' || kind === 'waiting') return 'waiting';
+    return 'idle';
   }
 
   function displayFor(signal = {}) {
     const displayStatus = displayStatusFor(signal);
-    const spec = DISPLAY_STATUS[displayStatus] || DISPLAY_STATUS.waiting;
+    const spec = DISPLAY_STATUS[displayStatus] || DISPLAY_STATUS.idle;
     const kind = String(signal.kind || '');
     return {
       displayStatus,
@@ -137,7 +146,10 @@
     if (display.displayStatus === 'running' && KIND_BUBBLE_TEXT[signal.kind]) {
       return KIND_BUBBLE_TEXT[signal.kind];
     }
-    const spec = DISPLAY_STATUS[display.displayStatus] || DISPLAY_STATUS.waiting;
+    if (display.displayStatus === 'running' && signal.kind === 'finished') {
+      return '这步刚跑完。';
+    }
+    const spec = DISPLAY_STATUS[display.displayStatus] || DISPLAY_STATUS.idle;
     return spec.bubbleText;
   }
 
