@@ -63,6 +63,8 @@
     "connectors/hermes/install.ps1",
     "connectors/hermes/install.sh",
     "connectors/hermes/plugins/**",
+    "!connectors/hermes/plugins/**/__pycache__/**",
+    "!connectors/hermes/plugins/**/*.py[cod]",
     "connectors/openclaw/install.ps1",
     "connectors/openclaw/install.sh",
     "connectors/openclaw/plugin/index.js",
