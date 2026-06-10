@@ -414,6 +414,76 @@ body:active {
     --status-accent: 255, 116, 116;
 }
 
+#pet-action-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    z-index: 7;
+    width: 92px;
+    padding: 4px;
+    transform: translate3d(-50%, 0, 0);
+    border: 1px solid rgba(126, 236, 255, 0.34);
+    border-radius: 8px;
+    background:
+        linear-gradient(180deg, rgba(22, 37, 48, 0.94), rgba(8, 14, 22, 0.9));
+    box-shadow:
+        0 10px 24px rgba(0, 0, 0, 0.28),
+        0 0 18px rgba(126, 236, 255, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    color: rgba(238, 244, 255, 0.96);
+    font-family: "Segoe UI", sans-serif;
+    font-size: 11px;
+    line-height: 1.3;
+    letter-spacing: 0;
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+    backdrop-filter: blur(12px);
+    transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+}
+
+#pet-action-menu.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate3d(-50%, -4px, 0) scale(0.98);
+}
+
+.pet-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pet-action-button {
+    width: 100%;
+    min-width: 0;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(238, 244, 255, 0.92);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+}
+
+.pet-action-button:hover {
+    background: rgba(126, 236, 255, 0.14);
+    border-color: rgba(126, 236, 255, 0.42);
+}
+
+.pet-action-button.close {
+    color: rgba(255, 218, 218, 0.95);
+    border-color: rgba(255, 116, 116, 0.28);
+}
+
+.pet-action-button.close:hover {
+    background: rgba(255, 116, 116, 0.13);
+    border-color: rgba(255, 116, 116, 0.45);
+}
+
 @keyframes pet-breathe {
     0%, 100% { transform: translateY(0) scale(1); }
     50% { transform: translateY(-1px) scale(1.015, 0.995); }

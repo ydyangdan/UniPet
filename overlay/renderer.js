@@ -78,6 +78,8 @@ const IDLE_COMPANION_BUBBLES = Object.freeze([
     '一起加油。',
 ]);
 let idleCompanionBubbleIndex = 0;
+let petActionMenuEl = null;
+let petActionMenuHideTimer = null;
 
 function configureSpriteSize() {
     const root = document.documentElement;
@@ -694,6 +696,98 @@ function nextIdleCompanionBubble() {
     return text;
 }
 
+function consumeMenuEvent(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+}
+
+function stopDragIfNeeded() {
+    if (dragActive) {
+        dragActive = false;
+        dragDirection = null;
+        motion.setDragging(false);
+        removePrefixedClasses('direction-');
+        if (window.unipetAPI) window.unipetAPI.petDragEnd();
+    }
+}
+
+function ensurePetActionMenu() {
+    if (petActionMenuEl) return petActionMenuEl;
+
+    const menu = document.createElement('div');
+    menu.id = 'pet-action-menu';
+    menu.className = 'hidden';
+    menu.setAttribute('role', 'menu');
+    menu.setAttribute('aria-hidden', 'true');
+
+    const actions = document.createElement('div');
+    actions.className = 'pet-action-buttons';
+
+    const quietButton = document.createElement('button');
+    quietButton.type = 'button';
+    quietButton.className = 'pet-action-button quiet';
+    quietButton.textContent = '\u5b89\u9759';
+    quietButton.addEventListener('click', quietPet);
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'pet-action-button close';
+    closeButton.textContent = '\u5173\u95ed';
+    closeButton.addEventListener('click', confirmPetQuit);
+
+    actions.append(quietButton, closeButton);
+    menu.append(actions);
+    menu.addEventListener('mousedown', (event) => event.stopPropagation());
+    menu.addEventListener('click', (event) => event.stopPropagation());
+    menu.addEventListener('contextmenu', consumeMenuEvent);
+    containerEl.appendChild(menu);
+    petActionMenuEl = menu;
+    return menu;
+}
+
+function showPetActionMenu(event) {
+    consumeMenuEvent(event);
+    stopDragIfNeeded();
+    statusCard.hide({ force: true });
+    bubbleEl.classList.add('hidden');
+
+    const menu = ensurePetActionMenu();
+    clearTimeout(petActionMenuHideTimer);
+    menu.classList.remove('hidden');
+    menu.setAttribute('aria-hidden', 'false');
+    petActionMenuHideTimer = setTimeout(hidePetActionMenu, 6000);
+}
+
+function hidePetActionMenu() {
+    clearTimeout(petActionMenuHideTimer);
+    petActionMenuHideTimer = null;
+    if (!petActionMenuEl) return;
+    petActionMenuEl.classList.add('hidden');
+    petActionMenuEl.setAttribute('aria-hidden', 'true');
+}
+
+function quietPet(event) {
+    consumeMenuEvent(event);
+    hidePetActionMenu();
+    stopDragIfNeeded();
+    statusCard.hide({ force: true });
+    bubbleEl.classList.add('hidden');
+    anim.transition('idle', 'UniPet ready', null);
+    motion.trigger('settle', 700);
+    motion.scheduleIdle();
+}
+
+function confirmPetQuit(event) {
+    consumeMenuEvent(event);
+    hidePetActionMenu();
+    stopDragIfNeeded();
+    if (window.unipetAPI && typeof window.unipetAPI.petQuit === 'function') {
+        window.unipetAPI.petQuit();
+    }
+}
+
 // ---- Initialise ----
 function init() {
     configureSpriteSize();
@@ -726,7 +820,9 @@ function init() {
     motion.scheduleIdle();
 
     // Pointer interactions are temporary animations; bridge state remains authoritative.
+    containerEl.addEventListener('contextmenu', showPetActionMenu);
     spriteEl.addEventListener('click', () => {
+        hidePetActionMenu();
         anim.playPreview('jumping');
         if (isCompanionMode()) {
             statusCard.hide({ force: true });
@@ -748,6 +844,11 @@ function init() {
     containerEl.addEventListener('mouseleave', () => {
         statusCard.scheduleHide();
     });
+    document.addEventListener('mousedown', (event) => {
+        if (!petActionMenuEl || petActionMenuEl.classList.contains('hidden')) return;
+        if (petActionMenuEl.contains(event.target)) return;
+        hidePetActionMenu();
+    });
 }
 
 // ---- Drag (pass through to main process) ----
@@ -757,6 +858,7 @@ let dragDirection = null;
 
 spriteEl.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
+    hidePetActionMenu();
     dragActive = true;
     dragLastX = e.screenX;
     dragDirection = null;
